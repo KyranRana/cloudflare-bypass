@@ -187,7 +187,7 @@ class cloudflare {
 			
 			curl_setopt($curl, CURLOPT_HEADER, 1);
 			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-	        // cookie settings
+	    	// cookie settings
 			if($cookie) {
 				curl_setopt($curl, CURLOPT_COOKIE, $cookie);
 			}
