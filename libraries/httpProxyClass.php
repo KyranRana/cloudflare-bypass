@@ -480,7 +480,7 @@ class httpProxy {
 		// if request cookies have been given
 		if (isset($cookies) && is_string($cookies)) {
 			// if cookies are given as an array
-			if(is_array($requestCookies)) {
+			if(is_array($cookies)) {
 				// $sessionInCookie : defaults to false
 				$sessionInCookie = isset($sessionInCookie) ? $sessionInCookie : false;
 				// generate formatted cookie string from array of cookies
@@ -789,9 +789,11 @@ class httpProxy {
 	 * @return void  Sets general header settings for cURL resource    
 	 */	 
 	private function configureRequestHeaders($headersToSend, $requestType, &$curlResource) {
-		// assigning headers to cURL resource
+		// assign headers to cURL resource
 		curl_setopt($curlResource, CURLOPT_HEADER, true);
-		// assigning user agent to cURL resource
+		// assign header output signal to resource
+		curl_setopt($curlResource, CURLINFO_HEADER_OUT, true);
+		// assign user agent to cURL resource
 		curl_setopt($curlResource, CURLOPT_USERAGENT, $this->userAgent);		
 		// if raw http headers are given
 		if(isset($headersToSend) && is_array($headersToSend)) {

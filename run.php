@@ -1,21 +1,30 @@
 <?php		
-require_once 'httpProxyClass.php';
-require_once 'cloudflareClass.php';
+ini_set('display_errors', 1);
+	
+require_once 'libraries/httpProxyClass.php';
+require_once 'libraries/cloudflareClass.php';
 
-$httpProxy = new httpProxy();
+$httpProxy   = new httpProxy();
+$httpProxyUA = 'proxyFactory';
 
 $requestLink = 'https://coinkite.com';
 $requestPage = json_decode($httpProxy->performRequest($requestLink));
 
 // if page is protected by cloudflare
 if($requestPage->status->http_code == 503) {
-	// use clearance cookie to bypass page
-	if(!$clearanceCookie = cloudflare::bypass($requestLink, $requestPage->content)) {
-		echo 'Cloud not fetch cookie';
-	}
-	
-	// Currently not working - will need to debug
-
+	if($clearanceCookie = cloudflare::bypass($requestLink, $httpProxyUA)) {
+		// use clearance cookie to bypass page
+		$requestPage = $httpProxy->performRequest($requestLink, 'GET', null, array(
+			'cookies' => $clearanceCookie
+		));
+		$requestPage = json_decode($requestPage);
+		// output real page content
+		echo $requestPage->content;
+	} else {
+		// could not fetch clearance cookie
+		echo 'Could not fetch CloudFlare clearance cookie (most likely due to excessive requests)';
+	}	
 }
+
 
 
