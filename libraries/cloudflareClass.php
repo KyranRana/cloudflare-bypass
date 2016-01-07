@@ -327,7 +327,7 @@ class cloudflare {
             // close connection
             curl_close($curlResource);
             // extracting page headers and content 
-			list($pageHeaders, $pageContents) = self::extractPageHeadersContent($response);
+            list($pageHeaders, $pageContents) = self::extractPageHeadersContent($response);
             // returning response
             return array(
             	'headers' => $pageHeaders,
