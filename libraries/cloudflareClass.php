@@ -294,7 +294,7 @@ class cloudflare {
 	* @param string  $referer   Referrer of Request
 	* @param string  $headers   Request headers to send
 	*
-	* @return string  Webpage markup / data
+	* @return string  Webpage markup
 	*/
 	private static function getPage($url, $referer, $headers = array()){
         // use cURL
