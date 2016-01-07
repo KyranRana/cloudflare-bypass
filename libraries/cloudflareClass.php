@@ -332,7 +332,7 @@ class cloudflare {
             return array(
             	'headers' => $pageHeaders,
             	'content' => $pageContents,
-				'status'  => $status
+            	'status'  => $status
             );
         }
         return false;
