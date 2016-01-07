@@ -26,7 +26,7 @@ class cloudflare {
 	/**
 	 * Bypasses the cloudflare anti-ddos page given the website link
 	 *
-	 * @param string $siteLink Site Host Link
+	 * @param string $siteLink  URL of request
 	 *
 	 * @return  
 	 */
@@ -39,10 +39,7 @@ class cloudflare {
 		$cfClearanceCookie = self::getCookie($siteNetLoc);
 		$cfAnswer = false;
 		// if directory doesn't exist
-		if(!is_dir('cf-cookies')) {
-			// create directory
-			mkdir('cf-cookies', 0777);
-		}
+		if(!is_dir('cf-cookies')) mkdir('cf-cookies', 0777);
 		// if cookie doesn't exist in storage
 		if(!$cfClearanceCookie) {
 			// create new cookie file to store website's clearance cookie
@@ -341,4 +338,3 @@ class cloudflare {
         return false;
     }
 }
-
