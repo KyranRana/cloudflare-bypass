@@ -3,4 +3,4 @@ A static PHP library which allows you to bypass the CloudFlare UAM page (Under A
 
 This script works by converting the JavaScript challenge code into code understood by the PHP compiling engine. 
 
-Example usage can be found in example.php
+Example usage can be found in run.php
