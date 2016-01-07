@@ -38,6 +38,11 @@ class cloudflare {
 		// try to get clearance cookie from storage
 		$cfClearanceCookie = self::getCookie($siteNetLoc);
 		$cfAnswer = false;
+		// if directory doesn't exist
+		if(!is_dir('cf-cookies')) {
+			// create directory
+			mkdir('cf-cookies', 0777);
+		}
 		// if cookie doesn't exist in storage
 		if(!$cfClearanceCookie) {
 			// create new cookie file to store website's clearance cookie
