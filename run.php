@@ -17,8 +17,8 @@ if($requestPage->status->http_code == 503) {
 		$requestPage = $httpProxy->performRequest($requestLink, 'GET', null, array(
 			'cookies' => $clearanceCookie
 		));
+		// return real page content
 		$requestPage = json_decode($requestPage);
-		// output real page content
 		echo $requestPage->content;
 	} else {
 		// could not fetch clearance cookie
