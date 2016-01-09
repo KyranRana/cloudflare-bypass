@@ -335,6 +335,6 @@ class cloudflare {
 	        		'status'  => $status
 	        	);
 		}
-    		return false;
+		return false;
 	}
 }
