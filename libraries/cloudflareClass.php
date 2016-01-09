@@ -18,7 +18,22 @@ class cloudflare {
 	 * @access private
 	 */
 	private static $userAgent;
-	 
+		 
+
+	// }}}
+	// {{{ useUserAgent()
+	
+	/**
+	 * Assigns given user agent string to bypass requests (Required)
+	 * Note: Make this the same user agent you use with your cURL requests
+	 *
+	 * @param string $userAgent  User Agent String 
+	 *
+	 * @return void  Sets user agent for request
+	 */
+	public static function useUserAgent($userAgent) {
+		self::$userAgent = $userAgent;
+	}
 
 	// }}}
 	// {{{ bypass()
@@ -28,17 +43,14 @@ class cloudflare {
 	 *
 	 * @param string $siteLink  URL of request
 	 *
-	 * @return  
+	 * @return void  Bypasses CloudFlare protection page
 	 */
-	public static function bypass($siteLink, $userAgent) {
-		// store user agent
-		self::$userAgent = $userAgent;
+	public static function bypass($siteLink) {
 		// extract site host from site link
 		$siteNetLoc = self::getSiteHost($siteLink);
 		// try to get clearance cookie from storage
 		$cfClearanceCookie = self::getCookie($siteNetLoc);
-		$cfAnswer = false;
-		// if directory doesn't exist
+		// create cookie storage directory if it doesn't exist
 		if(!is_dir('cf-cookies')) mkdir('cf-cookies', 0777);
 		// if cookie doesn't exist in storage
 		if(!$cfClearanceCookie) {
@@ -69,7 +81,7 @@ class cloudflare {
 	 *
 	 * @param string $siteLink  Website link
 	 *
-	 * @return string - Clearance Cookie
+	 * @return string  Clearance Cookie
 	 */
 	public static function bypassCloudFlare($siteNetLoc) {	
 		// request anti-bot page again with referrer as site hostname
@@ -99,7 +111,6 @@ class cloudflare {
 			}
 		}
 	}
-
 
 	// }}}
 	// {{{ getCookie()
@@ -299,41 +310,41 @@ class cloudflare {
 	private static function getPage($url, $referer, $headers = array()){
     		// use cURL
 		if($curlResource = curl_init($url)){
-	    		// header settings
-        		curl_setopt($curlResource, CURLOPT_HEADER, 1);
-        		curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
-        		// output headers in status object
-	        	curl_setopt($curlResource, CURLINFO_HEADER_OUT, true);   
-	        	// user agent settings
-	        	curl_setopt($curlResource, CURLOPT_USERAGENT, self::$userAgent);
-	        	// add headers if they are given
-	        	if(sizeof($headers) > 0) {
-	        	    curl_setopt($curlResource, CURLOPT_HTTPHEADER, $headers);
-	        	}
-	        	// session cookies
-	        	curl_setopt($curlResource, CURLOPT_COOKIEJAR,  'cf-cookies/cookies.txt');
-	        	curl_setopt($curlResource, CURLOPT_COOKIEFILE, 'cf-cookies/cookies.txt');
-	        	// return settings
-	        	curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
-	        	curl_setopt($curlResource, CURLOPT_FOLLOWLOCATION, false);
-	        	// ssl settings
-	        	curl_setopt($curlResource, CURLOPT_SSL_VERIFYHOST, false);
-	        	curl_setopt($curlResource, CURLOPT_SSL_VERIFYPEER, false);
-	        	// post settings
-	        	curl_setopt($curlResource, CURLOPT_CUSTOMREQUEST, 'GET');
-	        	// fetching response
-	        	$response = curl_exec($curlResource);
-	        	$status   = curl_getinfo($curlResource);
-	        	// close connection
-	        	curl_close($curlResource);
-	        	// extracting page headers and content 
-	    		list($pageHeaders, $pageContents) = self::extractPageHeadersContent($response);
-	        	// returning response
-	        	return array(
-	        		'headers' => $pageHeaders,
-	        		'content' => $pageContents,
-	        		'status'  => $status
-	        	);
+    		// header settings
+    		curl_setopt($curlResource, CURLOPT_HEADER, 1);
+    		curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
+    		// output headers in status object
+        	curl_setopt($curlResource, CURLINFO_HEADER_OUT, true);   
+        	// user agent settings
+        	curl_setopt($curlResource, CURLOPT_USERAGENT, self::$userAgent);
+        	// add headers if they are given
+        	if(sizeof($headers) > 0) {
+        	    curl_setopt($curlResource, CURLOPT_HTTPHEADER, $headers);
+        	}
+        	// session cookies
+        	curl_setopt($curlResource, CURLOPT_COOKIEJAR,  'cf-cookies/cookies.txt');
+        	curl_setopt($curlResource, CURLOPT_COOKIEFILE, 'cf-cookies/cookies.txt');
+        	// return settings
+        	curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
+        	curl_setopt($curlResource, CURLOPT_FOLLOWLOCATION, false);
+        	// ssl settings
+        	curl_setopt($curlResource, CURLOPT_SSL_VERIFYHOST, false);
+        	curl_setopt($curlResource, CURLOPT_SSL_VERIFYPEER, false);
+        	// post settings
+        	curl_setopt($curlResource, CURLOPT_CUSTOMREQUEST, 'GET');
+        	// fetching response
+        	$response = curl_exec($curlResource);
+        	$status   = curl_getinfo($curlResource);
+        	// close connection
+        	curl_close($curlResource);
+        	// extracting page headers and content 
+    		list($pageHeaders, $pageContents) = self::extractPageHeadersContent($response);
+        	// returning response
+        	return array(
+        		'headers' => $pageHeaders,
+        		'content' => $pageContents,
+        		'status'  => $status
+        	);
 		}
 		return false;
 	}
