@@ -297,9 +297,9 @@ class cloudflare {
 	* @return string  Webpage markup
 	*/
 	private static function getPage($url, $referer, $headers = array()){
-        // use cURL
-    	if($curlResource = curl_init($url)){
-    	    // header settings
+    	// use cURL
+		if($curlResource = curl_init($url)){
+	    	// header settings
 	        curl_setopt($curlResource, CURLOPT_HEADER, 1);
 	        curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
 	        // output headers in status object
@@ -334,7 +334,7 @@ class cloudflare {
 	        	'content' => $pageContents,
 	        	'status'  => $status
 	        );
-	    }
+    	}
 	    return false;
-    }
+	}
 }
