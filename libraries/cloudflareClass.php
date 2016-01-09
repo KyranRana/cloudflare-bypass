@@ -90,7 +90,7 @@ class cloudflare {
 				if(self::$cfBypassAttempts < 5) {
 					// re-attempt to get the clearance cookie
 					self::$cfBypassAttempts++;
-					$cfClearanceCookie = self::bypass($siteNetLoc);
+					$cfClearanceCookie = self::bypassCloudFlare($siteNetLoc);
 				}
 			}
 			if($cfClearanceCookie) {
