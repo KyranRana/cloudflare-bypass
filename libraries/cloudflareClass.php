@@ -310,41 +310,41 @@ class cloudflare {
 	private static function getPage($url, $referer, $headers = array()){
     		// use cURL
 		if($curlResource = curl_init($url)){
-    		// header settings
-    		curl_setopt($curlResource, CURLOPT_HEADER, 1);
-    		curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
-    		// output headers in status object
-        	curl_setopt($curlResource, CURLINFO_HEADER_OUT, true);   
-        	// user agent settings
-        	curl_setopt($curlResource, CURLOPT_USERAGENT, self::$userAgent);
-        	// add headers if they are given
-        	if(sizeof($headers) > 0) {
-        	    curl_setopt($curlResource, CURLOPT_HTTPHEADER, $headers);
-        	}
-        	// session cookies
-        	curl_setopt($curlResource, CURLOPT_COOKIEJAR,  'cf-cookies/cookies.txt');
-        	curl_setopt($curlResource, CURLOPT_COOKIEFILE, 'cf-cookies/cookies.txt');
-        	// return settings
-        	curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
-        	curl_setopt($curlResource, CURLOPT_FOLLOWLOCATION, false);
-        	// ssl settings
-        	curl_setopt($curlResource, CURLOPT_SSL_VERIFYHOST, false);
-        	curl_setopt($curlResource, CURLOPT_SSL_VERIFYPEER, false);
-        	// post settings
-        	curl_setopt($curlResource, CURLOPT_CUSTOMREQUEST, 'GET');
-        	// fetching response
-        	$response = curl_exec($curlResource);
-        	$status   = curl_getinfo($curlResource);
-        	// close connection
-        	curl_close($curlResource);
-        	// extracting page headers and content 
-    		list($pageHeaders, $pageContents) = self::extractPageHeadersContent($response);
-        	// returning response
-        	return array(
-        		'headers' => $pageHeaders,
-        		'content' => $pageContents,
-        		'status'  => $status
-        	);
+    			// header settings
+    			curl_setopt($curlResource, CURLOPT_HEADER, 1);
+    			curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
+    			// output headers in status object
+        		curl_setopt($curlResource, CURLINFO_HEADER_OUT, true);   
+        		// user agent settings
+        		curl_setopt($curlResource, CURLOPT_USERAGENT, self::$userAgent);
+        		// add headers if they are given
+        		if(sizeof($headers) > 0) {
+        		    curl_setopt($curlResource, CURLOPT_HTTPHEADER, $headers);
+        		}
+        		// session cookies
+        		curl_setopt($curlResource, CURLOPT_COOKIEJAR,  'cf-cookies/cookies.txt');
+        		curl_setopt($curlResource, CURLOPT_COOKIEFILE, 'cf-cookies/cookies.txt');
+        		// return settings
+        		curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
+        		curl_setopt($curlResource, CURLOPT_FOLLOWLOCATION, false);
+        		// ssl settings
+        		curl_setopt($curlResource, CURLOPT_SSL_VERIFYHOST, false);
+        		curl_setopt($curlResource, CURLOPT_SSL_VERIFYPEER, false);
+        		// post settings
+        		curl_setopt($curlResource, CURLOPT_CUSTOMREQUEST, 'GET');
+        		// fetching response
+        		$response = curl_exec($curlResource);
+        		$status   = curl_getinfo($curlResource);
+        		// close connection
+        		curl_close($curlResource);
+        		// extracting page headers and content 
+    			list($pageHeaders, $pageContents) = self::extractPageHeadersContent($response);
+        		// returning response
+        		return array(
+        			'headers' => $pageHeaders,
+        			'content' => $pageContents,
+        			'status'  => $status
+        		);
 		}
 		return false;
 	}
