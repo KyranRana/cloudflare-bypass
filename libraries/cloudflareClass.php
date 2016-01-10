@@ -83,7 +83,7 @@ class cloudflare {
 	 *
 	 * @return string  Clearance Cookie
 	 */
-	public static function bypassCloudFlare($siteNetLoc) {	
+	private static function bypassCloudFlare($siteNetLoc) {	
 		// request anti-bot page again with referrer as site hostname
 		$ddosPage = self::getPage($siteNetLoc, $siteNetLoc);
 		// cloudflare user id
