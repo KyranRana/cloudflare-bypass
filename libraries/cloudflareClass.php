@@ -313,8 +313,6 @@ class cloudflare {
     			// header settings
     			curl_setopt($curlResource, CURLOPT_HEADER, 1);
     			curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
-    			// output headers in status object
-        		curl_setopt($curlResource, CURLINFO_HEADER_OUT, true);   
         		// user agent settings
         		curl_setopt($curlResource, CURLOPT_USERAGENT, self::$userAgent);
         		// add headers if they are given
@@ -334,7 +332,6 @@ class cloudflare {
         		curl_setopt($curlResource, CURLOPT_CUSTOMREQUEST, 'GET');
         		// fetching response
         		$response = curl_exec($curlResource);
-        		$status   = curl_getinfo($curlResource);
         		// close connection
         		curl_close($curlResource);
         		// extracting page headers and content 
@@ -342,8 +339,7 @@ class cloudflare {
         		// returning response
         		return array(
         			'headers' => $pageHeaders,
-        			'content' => $pageContents,
-        			'status'  => $status
+        			'content' => $pageContents
         		);
 		}
 		return false;
