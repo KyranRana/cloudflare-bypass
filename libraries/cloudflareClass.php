@@ -43,7 +43,7 @@ class cloudflare {
 	 *
 	 * @param string $siteLink  URL of request
 	 *
-	 * @return void  Bypasses CloudFlare protection page
+	 * @return string  Clearance Cookie (if succeeded)
 	 */
 	public static function bypass($siteLink) {
 		// extract site host from site link
