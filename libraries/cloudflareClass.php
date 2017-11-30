@@ -259,6 +259,8 @@ class cloudflare {
 		$script  = str_replace(array(")+", ").$siteLen"), array(").", ")+$siteLen"), $script);	
 		// take out any source of javascript comment code - #JS Comment Fix
 		$script  = preg_replace("/'[^']+'/", "", $script);
+		// Fix
+		$script  = str_replace('f.action+=location.hash;', '', $script);
 		// evaluate PHP script
 		eval($script);
 		// if cloudflare answer has been found, store it 
