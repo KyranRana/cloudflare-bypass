@@ -931,8 +931,8 @@ class httpProxy {
 		$this->configureRedirectsForRequest($headers['followRedirects'], $headers['maxRedirects'], $curlResource);
 		// configure header settings for request
 		$this->configureRequestHeaders($headers['raw'], $requestType, $curlResource);
-		// data will always be encoded in UTF-8
-		curl_setopt($curlResource, CURLOPT_ENCODING, "UTF-8");
+		// decide best way to compress page data
+		curl_setopt($curlResource, CURLOPT_ENCODING, "");
 		// data will always be returned
 		curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
 		// extracting page headers and content from page response
