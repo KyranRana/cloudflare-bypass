@@ -355,14 +355,13 @@ class httpProxy {
 		}
 		// try decoding page contents as json if possible before sending it
 		$decodedContent = json_decode($contents);
-		$decodedContent = $decodedContent ? $decodedContent : $contents;
 		// if content could be parsed as json object
 		if(json_last_error_msg() == 'No error') {
-			// store object as is
+			// return page as json
 			$dataTarget['content'] = $decodedContent;
 		} else {
-			// utf8 encode object before storing
-			$dataTarget['content'] = utf8_encode($decodedContent);	
+			// return page as displayed
+			$dataTarget['content'] = $contents;
 		}
 	}
 	
@@ -932,6 +931,8 @@ class httpProxy {
 		$this->configureRedirectsForRequest($headers['followRedirects'], $headers['maxRedirects'], $curlResource);
 		// configure header settings for request
 		$this->configureRequestHeaders($headers['raw'], $requestType, $curlResource);
+		// data will always be encoded in UTF-8
+		curl_setopt($curlResource, CURLOPT_ENCODING, "UTF-8");
 		// data will always be returned
 		curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
 		// extracting page headers and content from page response
