@@ -49,16 +49,16 @@ class cloudflare {
 		// extract site host from site link
 		$siteNetLoc = self::getSiteHost($siteLink);
 		// try to get clearance cookie from storage
-		$cfClearanceCookie = self::getCookie($siteNetLoc);
+		$cfClearanceCookie = self::getCookie($siteLink);
 		// create cookie storage directory if it doesn't exist
 		if(!is_dir('cf-cookies')) mkdir('cf-cookies', 0777);
 		// if cookie doesn't exist in storage
 		if(!$cfClearanceCookie) {
 			// create new cookie file to store website's clearance cookie
-			self::bypassCloudFlare($siteNetLoc);
+			self::bypassCloudFlare($siteLink, $siteNetLoc);
 		} else {
 			// test cookie to see if it still works
-			$cfTest = self::getPage($siteNetLoc, $siteNetLoc, array(
+			$cfTest = self::getPage($siteLink, $siteNetLoc, array(
 				'cookie: '.$cfClearanceCookie
 			));	
 			// clear cookie log
@@ -66,11 +66,11 @@ class cloudflare {
 			// if cookie has expired
 			if(strpos($cfTest['content'], 'chk_jschl') !== false) {
 				// create new cookie file with new clearance cookie
-				self::bypassCloudFlare($siteNetLoc);
+				self::bypassCloudFlare($siteLink, $siteNetLoc);
 			}
 		}
 		// return clearance cookie
-		return self::getCookie($siteNetLoc);
+		return self::getCookie($siteLink);
 	}
 
 	// }}}
@@ -80,12 +80,13 @@ class cloudflare {
 	 * Solves the javascript challenge on the anti-ddos page until a clearance cookie is fetched 
 	 *
 	 * @param string $siteLink  Website link
+	 * @param string $siteNetLoc  Website host
 	 *
 	 * @return string  Clearance Cookie
 	 */
-	private static function bypassCloudFlare($siteNetLoc) {	
+	private static function bypassCloudFlare($siteLink, $siteNetLoc) {	
 		// request anti-bot page again with referrer as site hostname
-		$ddosPage = self::getPage($siteNetLoc, $siteNetLoc);
+		$ddosPage = self::getPage($siteLink, $siteNetLoc);
 		// cloudflare user id
 		$cfUserId = self::getPageCookie($ddosPage['headers'], '__cfduid');
 		// solve javascript challenge in ddos protection page
@@ -102,12 +103,12 @@ class cloudflare {
 				if(self::$cfBypassAttempts < 5) {
 					// re-attempt to get the clearance cookie
 					self::$cfBypassAttempts++;
-					$cfClearanceCookie = self::bypass($siteNetLoc);
+					$cfClearanceCookie = self::bypass($siteLink);
 				}
 			}
 			if($cfClearanceCookie) {
 				// store cookie data away in a text file 
-				self::storeCookie($siteNetLoc, $cfClearanceCookie.$cfUserId);
+				self::storeCookie($siteLink, $cfClearanceCookie.$cfUserId);
 			}
 		}
 	}
@@ -311,9 +312,9 @@ class cloudflare {
 	*
 	* @return string  Webpage markup
 	*/
-	private static function getPage($url, $referer, $headers = array()){
+	private static function getPage($link, $referer, $headers = array()){
     		// use cURL
-		if($curlResource = curl_init($url)){
+		if($curlResource = curl_init($link)){
     			// header settings
     			curl_setopt($curlResource, CURLOPT_HEADER, 1);
     			curl_setopt($curlResource, CURLOPT_REFERER, $referer.'/'); 
@@ -328,7 +329,7 @@ class cloudflare {
         		curl_setopt($curlResource, CURLOPT_COOKIEFILE, 'cf-cookies/cookies.txt');
         		// return settings
         		curl_setopt($curlResource, CURLOPT_RETURNTRANSFER, true);
-        		curl_setopt($curlResource, CURLOPT_FOLLOWLOCATION, false);
+        		curl_setopt($curlResource, CURLOPT_FOLLOWLOCATION, true);
         		// ssl settings
         		curl_setopt($curlResource, CURLOPT_SSL_VERIFYHOST, false);
         		curl_setopt($curlResource, CURLOPT_SSL_VERIFYPEER, false);
