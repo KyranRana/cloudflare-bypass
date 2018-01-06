@@ -82,23 +82,23 @@ class CloudflareBypass
         if ($uam_headers['http_code'] !== 503)
             return $uam_page;
         
-        //
-        // 1. Check if user agent is set in cURL handle
-        //
+        /*
+         * 1. Check if user agent is set in cURL handle
+         */
         if ($ua_check && !$this->_getCurlCookie($uam_headers['request_header'], 'User-Agent'))
                 throw new \ErrorException('curlExec -> CURLOPT_USERAGENT is a mandatory field!');
         
-        //
-        // 2. Extract "__cfuid" cookie
-        //
+        /*
+         * 2. Extract "__cfuid" cookie
+         */
         if(!($cfduid_cookie = $this->_getCurlCookie($uam_headers['request_header'], '__cfuid')))
             return $uam_page;
 
         curl_setopt($curl_handle, CURLOPT_COOKIELIST, $cfduid_cookie);
         
-        //
-        // 3. Solve challenge and request clearance link
-        //
+        /*
+         * 3. Solve challenge and request clearance link
+         */
         curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));
         
         $this->curl_cookies = array();
@@ -106,9 +106,9 @@ class CloudflareBypass
         $clearance_page     = curl_exec($curl_handle);
         $clearance_headers  = curl_getinfo($curl_handle);
         
-        //
-        // 4. Extract "cf_clearance" cookie
-        //
+        /*
+         * 4. Extract "cf_clearance" cookie
+         */
         if(!($cfclearance_cookie = $this->_getCurlCookie($clearance_headers['request_header'], 'cf_clearance'))) {
             // Too many attempts at fetching clearance cookie...
             if ($attempts > $this->max_attempts)
@@ -122,17 +122,17 @@ class CloudflareBypass
         
         curl_setopt($curl_handle, CURLOPT_COOKIELIST, $cfclearance_cookie);
         
-        //
-        // 5. Request url again if follow location is not set
-        //
+        /*
+         * 5. Request url again if follow location is not set
+         */
         curl_setopt($curl_handle, CURLOPT_URL, $uam_headers['url']);
         
         if ($clearance_headers['http_code'] === 302)
             $clearance_page = curl_exec($curl_handle);
         
-        //
-        // 6. Revert cURL options
-        //
+        /*
+         * 6. Revert cURL options
+         */
         $this->_setDefaultCurlException($exceptions, 'headerfunc_flag', NULL);
         $this->_setDefaultCurlException($exceptions, 'returntransfer_flag', TRUE);
         $this->_setDefaultCurlException($exceptions, 'header_out_flag', FALSE);
@@ -144,9 +144,9 @@ class CloudflareBypass
         
         $this->curl_cookies = array();
         
-        //
-        // 7. Get output
-        //
+        /*
+         * 7. Get output
+         */
         if (!$exceptions['returntransfer_flag'])
             echo $clearance_page;
         else
@@ -230,14 +230,14 @@ class CloudflareBypass
      */
     private function _getClearanceLink($content, $url)
     {
-        //
-        // 1. Mimic waiting process
-        //
+        /*
+         * 1. Mimic waiting process
+         */
         sleep(4);
         
-        //
-        // 2. Extract "jschl_vc" and "pass" params
-        //
+        /*
+         * 2. Extract "jschl_vc" and "pass" params
+         */
         preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
         
         if (!isset($matches[1]) || !isset($matches[1][1]))
@@ -246,18 +246,18 @@ class CloudflareBypass
         $params = array();
         list($params['jschl_vc'], $params['pass']) = $matches[1];
         
-        //
-        // 3. Extract JavaScript challenge logic
-        //
+        /*
+         * 3. Extract JavaScript challenge logic
+         */
         preg_match_all('/:[!\[\]+()]+|[-*+\/]?=[!\[\]+()]+/', $content, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0]))
             throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
         
         try {
-            //
-            // 4. Convert challenge logic to PHP
-            //
+            /*
+             * 4. Convert challenge logic to PHP
+             */
             $php_code = "";
             foreach ($matches[0] as $js_code) {
                 $js_code = str_replace(array(
@@ -275,16 +275,16 @@ class CloudflareBypass
                 $php_code .= '$params[\'jschl_answer\']' . ($js_code[0] == ':' ? '=' . substr($js_code, 1) : $js_code) . ';';
             }
             
-            //
-            // 5. Eval PHP and get solution
-            //
+            /*
+             * 5. Eval PHP and get solution
+             */
             eval($php_code);
             $uri = parse_url($url);
             $params['jschl_answer'] += strlen($uri['host']);
             
-            //
-            // 6. Construct clearance link
-            //
+            /*
+             * 6. Construct clearance link
+             */
             $clearance_link = $uri['scheme'] . '://' . $uri['host'];
             $clearance_link .= '/cdn-cgi/l/chk_jschl?' . http_build_query($params);
             return $clearance_link;
