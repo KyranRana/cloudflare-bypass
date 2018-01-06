@@ -235,6 +235,7 @@ class CloudflareBypass
         
         // extract "jschl_vc" and "pass" params
         preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
+        
         if (!isset($matches[1]) || !isset($matches[1][1]))
             throw new \ErrorException('Unable to fetch jschl_vc and pass values; maybe not protected?');
         
@@ -243,6 +244,7 @@ class CloudflareBypass
         
         // extract javascript challenge logic
         preg_match_all('/:[!\[\]+()]+|[-*+\/]?=[!\[\]+()]+/', $content, $matches);
+        
         if (!isset($matches[0]) || !isset($matches[0][0]))
             throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
         
@@ -261,6 +263,7 @@ class CloudflareBypass
                     "(!0)",
                     "(0)"
                 ), $js_code);
+                
                 $php_code .= '$params[\'jschl_answer\']' . ($js_code[0] == ':' ? '=' . substr($js_code, 1) : $js_code) . ';';
             }
             
