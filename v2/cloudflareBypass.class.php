@@ -70,15 +70,15 @@ class CloudflareBypass
      *
      * @return request info
      */
-    public function curlExec($curl_handle, $exceptions, $attempt = 1, $ua_check = false)
+    public function curlExec($curl_handle, $exceptions = [], $attempt = 1, $ua_check = false)
     {
         curl_setopt_array($curl_handle, array(
+            CURLINFO_HEADER_OUT => true,
+            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADERFUNCTION => array(
                 $this,
                 '_getCurlHeaders'
-            ),
-            CURLINFO_HEADER_OUT => true,
-            CURLOPT_RETURNTRANSFER => true
+            )
         ));
         
         $uam_page    = curl_exec($curl_handle);
