@@ -63,8 +63,8 @@ class CloudflareBypass
      * @param $curl_handle
      * @param $exceptions - Array with options:
      * "returntransfer_flag"    => value of CURLOPT_RETURNTRANSFER (default: false)
-     * "headerfunc_flag"    => value of CURLOPT_HEADERFUNCTION (default: null)
-     * "header_out_flag"    => value of CURLINFO_HEADER_OUT (default: false)
+     * "headerfunc_flag"        => value of CURLOPT_HEADERFUNCTION (default: null)
+     * "header_out_flag"        => value of CURLINFO_HEADER_OUT (default: false)
      *
      * @return request info
      */
