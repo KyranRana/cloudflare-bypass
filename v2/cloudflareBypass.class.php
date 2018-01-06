@@ -230,10 +230,14 @@ class CloudflareBypass
      */
     private function _getClearanceLink($content, $url)
     {
-        // mimic waiting process
+        //
+        // 1. Mimic waiting process
+        //
         sleep(4);
         
-        // extract "jschl_vc" and "pass" params
+        //
+        // 2. Extract "jschl_vc" and "pass" params
+        //
         preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
         
         if (!isset($matches[1]) || !isset($matches[1][1]))
@@ -242,14 +246,18 @@ class CloudflareBypass
         $params = array();
         list($params['jschl_vc'], $params['pass']) = $matches[1];
         
-        // extract javascript challenge logic
+        //
+        // 3. Extract JavaScript challenge logic
+        //
         preg_match_all('/:[!\[\]+()]+|[-*+\/]?=[!\[\]+()]+/', $content, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0]))
             throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
         
         try {
-            // convert javascript to php
+            //
+            // 4. Convert challenge logic to PHP
+            //
             $php_code = "";
             foreach ($matches[0] as $js_code) {
                 $js_code = str_replace(array(
@@ -267,18 +275,22 @@ class CloudflareBypass
                 $php_code .= '$params[\'jschl_answer\']' . ($js_code[0] == ':' ? '=' . substr($js_code, 1) : $js_code) . ';';
             }
             
-            // eval php and get solution
+            //
+            // 5. Eval PHP and get solution
+            //
             eval($php_code);
             $uri = parse_url($url);
             $params['jschl_answer'] += strlen($uri['host']);
             
-            // get clearance link
+            //
+            // 6. Construct clearance link
+            //
             $clearance_link = $uri['scheme'] . '://' . $uri['host'];
             $clearance_link .= '/cdn-cgi/l/chk_jschl?' . http_build_query($params);
             return $clearance_link;
         }
         catch (Exception $ex) {
-            // php evaluation bug... throw exception
+            // PHP evaluation bug; inform user to report bug
             throw new \ErrorException('Something went wrong! Please report an issue: ' . $ex->getMessage());
         }
     }
