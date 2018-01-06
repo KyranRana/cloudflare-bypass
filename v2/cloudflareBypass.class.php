@@ -16,8 +16,6 @@ class CloudflareBypass
      */
     private $max_attempts = 5;
     
-    
-    
     // {{{  cURL Integration
     
     /**
@@ -70,15 +68,12 @@ class CloudflareBypass
      *
      * @return request info
      */
-    public function curlExec($curl_handle, $exceptions = [], $attempt = 1, $ua_check = false)
+    public function curlExec($curl_handle, $exceptions = [], $attempt = 1, $ua_check = true)
     {
         curl_setopt_array($curl_handle, array(
-            CURLINFO_HEADER_OUT => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADERFUNCTION => array(
-                $this,
-                '_getCurlHeaders'
-            )
+            CURLINFO_HEADER_OUT     => true,
+            CURLOPT_RETURNTRANSFER  => true,
+            CURLOPT_HEADERFUNCTION  => array($this, '_getCurlHeaders')
         ));
         
         $uam_page    = curl_exec($curl_handle);
@@ -87,65 +82,57 @@ class CloudflareBypass
         if ($uam_headers['http_code'] !== 503)
             return $uam_page;
         
+        //
         // 1. Check if user agent is set in cURL handle
-        if ($ua_check) {
-            if (!isset($this->curl_cookies['User-Agent']))
-                preg_match('/User-Agent: (.+?)/', $uam_headers['request_header'], $matches);
-            if (!isset($matches[1]))
-                // User agent is not set
+        //
+        if ($ua_check && !$this->_getCurlCookie($uam_headers['request_header'], 'User-Agent'))
                 throw new \ErrorException('curlExec -> CURLOPT_USERAGENT is a mandatory field!');
-        }
         
+        //
         // 2. Extract "__cfuid" cookie
-        $cfduid_cookie = "";
-        if (isset($this->curl_cookies['__cfduid']))
-            $cfduid_cookie = $this->curl_cookies['__cfduid'];
-        else {
-            preg_match('/__cfduid=(.+)/', $uam_headers['request_header'], $matches);
-            if (isset($matches[1]))
-                $cfduid_cookie = 'Set-Cookie: __cfduid=' . $matches[1];
-            else
-                return $uam_page;
-        }
+        //
+        if(!($cfduid_cookie = $this->_getCurlCookie($uam_headers['request_header'], '__cfuid')))
+            return $uam_page;
+
         curl_setopt($curl_handle, CURLOPT_COOKIELIST, $cfduid_cookie);
         
+        //
         // 3. Solve challenge and request clearance link
+        //
         curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));
         
         $this->curl_cookies = array();
         
-        $clearance_page    = curl_exec($curl_handle);
-        $clearance_headers = curl_getinfo($curl_handle);
+        $clearance_page     = curl_exec($curl_handle);
+        $clearance_headers  = curl_getinfo($curl_handle);
         
+        //
         // 4. Extract "cf_clearance" cookie
-        $cfclearance_cookie = "";
-        if (isset($this->curl_cookies['cf_clearance']))
-            $cfclearance_cookie = $this->curl_cookies['cf_clearance'];
-        else {
-            preg_match('/cf_clearance=(.+)/', $clearance_headers['request_header'], $matches);
-            if (isset($matches[1]))
-                $cfclearance_cookie = 'Set-Cookie: cf_clearance=' . $matches[1];
-            else if ($attempts > $this->max_attempts)
-                // Tried 5 times and did not receive clearance...
+        //
+        if(!($cfclearance_cookie = $this->_getCurlCookie($clearance_headers['request_header'], 'cf_clearance'))) {
+            // Too many attempts at fetching clearance cookie...
+            if ($attempts > $this->max_attempts)
                 throw new \ErrorException("curlExec -> Too many attempts to get CF clearance!");
-            else
-                // Retry CF process
-                list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $exceptions, $attempts + 1, true);
+
+            list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $exceptions, $attempts + 1, false);
         }
-        if ($cfclearance_cookie && $ua_check)
-            return array(
-                $cfduid_cookie,
-                $cfclearance_cookie
-            );
+
+        if ($cfclearance_cookie && !$ua_check)
+            return array($cfduid_cookie, $cfclearance_cookie);
+        
         curl_setopt($curl_handle, CURLOPT_COOKIELIST, $cfclearance_cookie);
         
+        //
         // 5. Request url again if follow location is not set
+        //
         curl_setopt($curl_handle, CURLOPT_URL, $uam_headers['url']);
         
         if ($clearance_headers['http_code'] === 302)
             $clearance_page = curl_exec($curl_handle);
         
+        //
         // 6. Revert cURL options
+        //
         $this->_setDefaultCurlException($exceptions, 'headerfunc_flag', NULL);
         $this->_setDefaultCurlException($exceptions, 'returntransfer_flag', TRUE);
         $this->_setDefaultCurlException($exceptions, 'header_out_flag', FALSE);
@@ -157,7 +144,9 @@ class CloudflareBypass
         
         $this->curl_cookies = array();
         
+        //
         // 7. Get output
+        //
         if (!$exceptions['returntransfer_flag'])
             echo $clearance_page;
         else
@@ -201,10 +190,31 @@ class CloudflareBypass
                 $exceptions[$option] = $default;
         }
     }
-    
+
+    /**
+     * Get cURL full "Set-Cookie" header for cookie name
+     *
+     * @access private
+     * @param $headers
+     * @param $cookie
+     *
+     * @return mixed string|bool
+     */
+    private function _getCurlCookie($headers, $cookie)
+    {
+        $cookie = '';
+        if (isset($this->curl_cookies[$cookie]))
+            $cookie = $this->curl_cookies[$cookie];
+        else {
+            preg_match("/${cookie}[:=] (.+)/", $headers, $matches);
+
+            if (isset($matches[1]))
+                $cookie = "Set-Cookie: $cookie=" . $matches[1];
+        }
+        return $cookie === '' ? false : $cookie;
+    }
+
     // }}}
-    
-    
     
     /**
      * Get Clearance Link 
