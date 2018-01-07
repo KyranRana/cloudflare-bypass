@@ -49,23 +49,35 @@ class CloudflareBypass
      *
      * @return mixed
      */
-    public function curlExec($curl_handle_orig, $attempt = 1, $ua_check = true)
+    public function curlExec($curl_handle_orig, $attempt = 1, $root = true)
     {
-        $uam_page    = curl_exec($curl_handle_orig);
-        $uam_headers = curl_getinfo($curl_handle_orig);
+        if($root)
+        {
+            /*
+             * Request original page and see if it is protected by Cloudflare
+             */
+            $uam_page    = curl_exec($curl_handle_orig);
+            $uam_headers = curl_getinfo($curl_handle_orig);
 
-        if (!$this->_isProtected($uam_page, $uam_headers)) return $page;
+            if (!$this->_isProtected($uam_page, $uam_headers)) return $page;
        
-        /*
-         * Clone cURL handle and assign necessary options to copy so we do not change the original!
-         */
-        $curl_handle = curl_copy_handle($curl_handle_orig);
-        
-        curl_setopt_array($curl_handle, array(
-            CURLINFO_HEADER_OUT     => true,
-            CURLOPT_RETURNTRANSFER  => true,
-            CURLOPT_HEADERFUNCTION  => array($this, '_getCurlHeaders')
-        ));
+            /*
+             * Clone cURL handle and assign necessary options to copy so we do not change the original!
+             */
+            $curl_handle = curl_copy_handle($curl_handle_orig);
+            
+            curl_setopt_array($curl_handle, array(
+                CURLINFO_HEADER_OUT     => true,
+                CURLOPT_RETURNTRANSFER  => true,
+                CURLOPT_HEADERFUNCTION  => array($this, '_getCurlHeaders')
+            ));
+        }
+        else 
+            /*
+             * Not in root scope so $curl_handle_orig is a copy; set it as $curl_handle
+             */
+            $curl_handle = $curl_handle_orig;
+
         
         $uam_page    = curl_exec($curl_handle);
         $uam_headers = curl_getinfo($curl_handle);
@@ -73,7 +85,7 @@ class CloudflareBypass
         /*
          * 1. Check if user agent is set in cURL handle
          */
-        if ($ua_check && !$this->_getCurlCookie($uam_headers['request_header'], 'User-Agent'))
+        if ($root && !$this->_getCurlCookie($uam_headers['request_header'], 'User-Agent'))
             throw new \ErrorException('curlExec -> CURLOPT_USERAGENT is a mandatory field!');
         
         /*
@@ -100,7 +112,7 @@ class CloudflareBypass
             list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $attempts + 1, false);
         }
 
-        if ($cfclearance_cookie && !$ua_check) 
+        if ($cfclearance_cookie && !$root) 
             return array($cfduid_cookie, $cfclearance_cookie);
         
         curl_setopt($curl_handle, CURLOPT_COOKIELIST, $cfclearance_cookie);
