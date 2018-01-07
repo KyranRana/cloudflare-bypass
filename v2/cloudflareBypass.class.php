@@ -75,9 +75,10 @@ class CloudflareBypass
             CURLOPT_RETURNTRANSFER  => true,
             CURLOPT_HEADERFUNCTION  => array($this, '_getCurlHeaders')
         ));
-        
+
         $uam_page    = curl_exec($curl_handle);
         $uam_headers = curl_getinfo($curl_handle); 
+        
         if ($uam_headers['http_code'] !== 503) return $uam_page;
 
         /*
@@ -95,10 +96,11 @@ class CloudflareBypass
         /*
          * 3. Solve challenge and request clearance link
          */
-        $this->curl_cookies = array();  
         curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));
-        $clearance_page    = curl_exec($curl_handle);
-        $clearance_headers = curl_getinfo($curl_handle);
+        
+        $this->curl_cookies = array();  
+        $clearance_page     = curl_exec($curl_handle);
+        $clearance_headers  = curl_getinfo($curl_handle);
         
         /*
          * 4. Extract "cf_clearance" cookie
@@ -107,8 +109,10 @@ class CloudflareBypass
             if ($attempts > $this->max_attempts) throw new \ErrorException("curlExec -> Too many attempts to get CF clearance!");
             list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $exceptions, $attempts + 1, false);
         }
+
+        if ($cfclearance_cookie && !$ua_check) 
+            return array($cfduid_cookie, $cfclearance_cookie);
         
-        if ($cfclearance_cookie && !$ua_check) return array($cfduid_cookie, $cfclearance_cookie);
         curl_setopt($curl_handle, CURLOPT_COOKIELIST, $cfclearance_cookie);
         
         /*
@@ -244,11 +248,7 @@ class CloudflareBypass
             $php_code = "";
             foreach ($matches[0] as $js_code) {
                 // [] causes "invalid operator" errors; convert to integer equivalents
-                $js_code = str_replace(
-                    array(")+(",  "![]", "!+[]",  "[]"), 
-                    array(").(", "(!1)", "(!0)", "(0)"), 
-                    $js_code);
-                
+                $js_code = str_replace(array(")+(",  "![]", "!+[]",  "[]"), array(").(", "(!1)", "(!0)", "(0)"), $js_code);
                 $php_code .= '$params[\'jschl_answer\']' . ($js_code[0] == ':' ? '=' . substr($js_code, 1) : $js_code) . ';';
             }
             

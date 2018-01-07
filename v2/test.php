@@ -6,7 +6,7 @@ $cloudflare_bypass->setCurlConfig(array(
     'returntransfer_flag' => true
 ));
 
-if($curl_handle = curl_init("https://anime47.com")) 
+if($curl_handle = curl_init("https://coinkite.com")) 
 {
     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);    
@@ -18,6 +18,14 @@ if($curl_handle = curl_init("https://anime47.com"))
     echo "Request begin!\n";
     $res = $cloudflare_bypass->curlExec($curl_handle);
     echo "Request ended with: " . curl_getinfo($curl_handle)['http_code'] . "\n";
-    
+    echo "Waiting for another hour...\n";
+
+    sleep(60 * 60);
+
+    echo "Request begin!\n";
+    $res = $cloudflare_bypass->curlExec($curl_handle);
+    echo "Request ended with: " . curl_getinfo($curl_handle)['http_code'] . "\n";
+
+
     curl_close($curl_handle);
 }
