@@ -15,7 +15,7 @@ class CloudflareBypass
      * @var integer
      */
     private $max_attempts = 5;
-    
+
     // {{{  cURL Integration
     
     /**
@@ -23,24 +23,7 @@ class CloudflareBypass
      * @var array
      */
     private $curl_cookies = array();
-    
-    /**
-     * Global exceptions applied to cURL request
-     * @var array
-     */
-    private $curl_exceptions = array();
-    
-    /**
-     * Set global cURL exceptions
-     *
-     * @access public
-     * @param $exceptions
-     */
-    public function setCurlConfig($exceptions)
-    {
-        $this->curl_exceptions = $exceptions;
-    }
-    
+       
     /**
      * Bypass cloudflare using a cURL handle
      *
@@ -60,26 +43,32 @@ class CloudflareBypass
      * - CURLOPT_USERAGENT needs to be set!
      *
      * @access public
-     * @param $curl_handle
-     * @param $exceptions - Array with options:
-     * "returntransfer_flag"    => value of CURLOPT_RETURNTRANSFER (default: false)
-     * "headerfunc_flag"        => value of CURLOPT_HEADERFUNCTION (default: null)
-     * "header_out_flag"        => value of CURLINFO_HEADER_OUT (default: false)
+     * @param $curl_handle_orig
+     * @param $attempt
+     * @param $ua_check
      *
-     * @return request info
+     * @return mixed
      */
-    public function curlExec($curl_handle, $exceptions = [], $attempt = 1, $ua_check = true)
+    public function curlExec($curl_handle_orig, $attempt = 1, $ua_check = true)
     {
+        $uam_page       = curl_exec($curl_handle_orig);
+        $uam_headers    = curl_getinfo($curl_handle_orig);
+
+        if (!$this->_isProtected($uam_page, $uam_headers)) return $page;
+       
+        /*
+         * Clone cURL handle and assign necessary options to copy so we do not change the original!
+         */
+        $curl_handle    = curl_copy_handle($curl_handle_orig);
+        
         curl_setopt_array($curl_handle, array(
             CURLINFO_HEADER_OUT     => true,
             CURLOPT_RETURNTRANSFER  => true,
             CURLOPT_HEADERFUNCTION  => array($this, '_getCurlHeaders')
         ));
-
-        $uam_page    = curl_exec($curl_handle);
-        $uam_headers = curl_getinfo($curl_handle); 
         
-        if ($uam_headers['http_code'] !== 503) return $uam_page;
+        $uam_page       = curl_exec($curl_handle);
+        $uam_headers    = curl_getinfo($curl_handle);
 
         /*
          * 1. Check if user agent is set in cURL handle
@@ -98,7 +87,8 @@ class CloudflareBypass
          */
         curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));
         
-        $this->curl_cookies = array();  
+        $this->curl_cookies = array();
+        
         $clearance_page     = curl_exec($curl_handle);
         $clearance_headers  = curl_getinfo($curl_handle);
         
@@ -107,7 +97,7 @@ class CloudflareBypass
          */
         if (!($cfclearance_cookie = $this->_getCurlCookie($clearance_headers['request_header'], 'cf_clearance'))) {
             if ($attempts > $this->max_attempts) throw new \ErrorException("curlExec -> Too many attempts to get CF clearance!");
-            list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $exceptions, $attempts + 1, false);
+            list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $attempts + 1, false);
         }
 
         if ($cfclearance_cookie && !$ua_check) 
@@ -122,26 +112,14 @@ class CloudflareBypass
         if ($clearance_headers['http_code'] === 302) $clearance_page = curl_exec($curl_handle);
         
         /*
-         * 6. Revert cURL options
+         * 6. Set "__cfduid" and "cf_clearance" in original cURL handle
          */
-        $this->_setDefaultCurlException($exceptions, 'headerfunc_flag', NULL);
-        $this->_setDefaultCurlException($exceptions, 'returntransfer_flag', TRUE);
-        $this->_setDefaultCurlException($exceptions, 'header_out_flag', FALSE);
-        
-        curl_setopt($curl_handle, CURLOPT_URL, $uam_headers['url']);
-        curl_setopt($curl_handle, CURLOPT_HEADERFUNCTION, $exceptions['headerfunc_flag']);
-        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, $exceptions['returntransfer_flag']);
-        curl_setopt($curl_handle, CURLINFO_HEADER_OUT, $exceptions['header_out_flag']);
+        curl_setopt($curl_handle_orig, CURLOPT_COOKIELIST, $cfduid_cookie);
+        curl_setopt($curl_handle_orig, CURLOPT_COOKIELIST, $cfclearance_cookie);    
         
         $this->curl_cookies = array();
         
-        /*
-         * 7. Get output
-         */
-        if (!$exceptions['returntransfer_flag'])
-            echo $clearance_page;
-        else
-            return $clearance_page;
+        return curl_exec($curl_handle); 
     }
     
     /**
@@ -151,7 +129,7 @@ class CloudflareBypass
      * @param $curl_handle
      * @param $header
      *
-     * @return bytes in $header
+     * @return int
      */
     private function _getCurlHeaders($curl_handle, $header)
     {
@@ -162,26 +140,6 @@ class CloudflareBypass
         return strlen($header);
     }
     
-    /**
-     * cURL set default exception
-     *
-     * Exception will be set to global default or $default (if not set)
-     *
-     * @access private
-     * @param &$exceptions
-     * @param $option
-     * @param $default
-     */
-    private function _setDefaultCurlException(&$exceptions, $option, $default)
-    {
-        if (!isset($exceptions[$option])) {
-            if (isset($this->curl_exceptions[$option]))
-                $exceptions[$option] = $this->curl_exceptions[$option];
-            else
-                $exceptions[$option] = $default;
-        }
-    }
-
     /**
      * Get cURL full "Set-Cookie" header for cookie name
      *
@@ -204,6 +162,44 @@ class CloudflareBypass
     }
 
     // }}}
+
+    /**
+     * Check for UAM page 
+     *
+     * Given page contents and headers, will confirm if page is protected by CloudFlare
+     * (to my best of judgment; not perfect).
+     *
+     * @access private
+     * @param $content
+     * @param $headers
+     *
+     * @return bool 
+     */
+    private function _isProtected($content, $headers)
+    {
+        /*
+         * 1. Cloudflare UAM page always throw a 503
+         */
+        if ($headers['http_code'] !== 503) return false;
+
+        /*
+         * 2. Cloudflare UAM page contains the following strings:
+         * - jschl_vc
+         * - pass
+         * - jschl_answer
+         * - /cdn-cgi/l/chk_jschl
+         */
+        if (!(
+            strpos($content, "jschl_vc")                !== false &&
+            strpos($content, "pass")                    !== false &&
+            strpos($content, "jschl_answer")            !== false &&
+            strpos($content, "/cdn-cgi/l/chk_jschl")    !== false
+        ))
+            return false;
+
+        return true;
+    }
+
     
     /**
      * Get Clearance Link 
@@ -215,7 +211,7 @@ class CloudflareBypass
      * @param $content
      * @param $url
      *
-     * @return clearance link
+     * @return string
      */
     private function _getClearanceLink($content, $url)
     {

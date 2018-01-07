@@ -6,10 +6,6 @@ $cloudflare_bypass = new CloudflareBypass();
 /**
  * cURL example
  */
-$cloudflare_bypass->setCurlConfig(array(
-    'returntransfer_flag' => true
-));
-
 if($curl_handle = curl_init("https://coinkite.com")) 
 {
     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
