@@ -51,15 +51,15 @@ class CloudflareBypass
      */
     public function curlExec($curl_handle_orig, $attempt = 1, $ua_check = true)
     {
-        $uam_page       = curl_exec($curl_handle_orig);
-        $uam_headers    = curl_getinfo($curl_handle_orig);
+        $uam_page    = curl_exec($curl_handle_orig);
+        $uam_headers = curl_getinfo($curl_handle_orig);
 
         if (!$this->_isProtected($uam_page, $uam_headers)) return $page;
        
         /*
          * Clone cURL handle and assign necessary options to copy so we do not change the original!
          */
-        $curl_handle    = curl_copy_handle($curl_handle_orig);
+        $curl_handle = curl_copy_handle($curl_handle_orig);
         
         curl_setopt_array($curl_handle, array(
             CURLINFO_HEADER_OUT     => true,
@@ -67,8 +67,8 @@ class CloudflareBypass
             CURLOPT_HEADERFUNCTION  => array($this, '_getCurlHeaders')
         ));
         
-        $uam_page       = curl_exec($curl_handle);
-        $uam_headers    = curl_getinfo($curl_handle);
+        $uam_page    = curl_exec($curl_handle);
+        $uam_headers = curl_getinfo($curl_handle);
 
         /*
          * 1. Check if user agent is set in cURL handle
