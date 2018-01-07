@@ -355,10 +355,15 @@ class httpProxy {
 		}
 		// try decoding page contents as json if possible before sending it
 		$decodedContent = json_decode($contents);
+
+		$jsonError = json_last_error_msg(); 
 		// if content could be parsed as json object
-		if(json_last_error_msg() == 'No error') {
+		if($jsonError == 'No error') {
 			// return page as json
 			$dataTarget['content'] = $decodedContent;
+		} else if(strpos($jsonError, "Malformed UTF-8") !== false) {
+			// return page as UTF8
+			$dataTarget['content'] = utf8_encode($contents);
 		} else {
 			// return page as displayed
 			$dataTarget['content'] = $contents;

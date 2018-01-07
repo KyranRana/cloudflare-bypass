@@ -61,10 +61,10 @@ class cloudflare {
 			$cfTest = self::getPage($siteLink, $siteNetLoc, array(
 				'cookie: '.$cfClearanceCookie
 			));	
-			// clear cookie log
-			unlink('cf-cookies/cookies.txt');
 			// if cookie has expired
 			if(strpos($cfTest['content'], 'chk_jschl') !== false) {
+				// clear cookie log
+				if(file_exists('cf-cookies/cookies.txt')) unlink('cf-cookies/cookies.txt');
 				// create new cookie file with new clearance cookie
 				self::bypassCloudFlare($siteLink, $siteNetLoc);
 			}
