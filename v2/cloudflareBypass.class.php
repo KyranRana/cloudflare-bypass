@@ -97,11 +97,9 @@ class CloudflareBypass
         /*
          * 4. Extract "cf_clearance" cookie
          */
-        if (!($cfclearance_cookie = $this->_getCurlCookie($clearance_headers['request_header'], 'cf_clearance'))) {
-            // Make sure we have not tried too many times...
+        if (!($cfclearance_cookie = $this->_getCurlCookie($clearance_headers['request_header'], 'cf_clearance'))) 
+        {
             if ($attempts > $this->max_attempts) throw new \ErrorException("curlExec -> Too many attempts to get CF clearance!");   
-            
-            // Repeat CF process but skip root-scope checks
             list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $attempts + 1, false);
         }
 
