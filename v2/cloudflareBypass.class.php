@@ -89,8 +89,8 @@ class CloudflareBypass
         /*
          * 3. Solve challenge and request clearance link
          */
-        $this->curl_cookies = array();
         curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));        
+        $this->curl_cookies = array();
         $clearance_page     = curl_exec($curl_handle);
         $clearance_headers  = curl_getinfo($curl_handle);
         
