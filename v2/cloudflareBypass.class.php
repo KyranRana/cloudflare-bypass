@@ -28,16 +28,8 @@ class CloudflareBypass
      * Bypass cloudflare using a cURL handle
      *
      * Given a curl handle this method will behave like "curl_exec" however it will take 
-     * care of the cloudflare UAM page if it pops up. This method will temporarily set the 
-     * following flags to do the job:
-     *
-     * - CURLOPT_RETURNTRANSFER=true
-     * - CURLINFO_HEADER_OUT=true
-     * - CURLOPT_HEADERFUNCTION      
-     *
-     * Since libcurl in PHP does not have "curl_getopts" or anything of the sort appropriate 
-     * options have been added to the $exceptions config (in case you want to retain settings
-     * you have applied for these options)
+     * care of the cloudflare UAM page if it pops up. This method creates a copy of the
+     * cURL handle passed through and assigns necessary options to that.
      *
      * Dependencies:
      * - CURLOPT_USERAGENT needs to be set!
@@ -97,10 +89,8 @@ class CloudflareBypass
         /*
          * 3. Solve challenge and request clearance link
          */
-        curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));
-        
         $this->curl_cookies = array();
-        
+        curl_setopt($curl_handle, CURLOPT_URL, $this->_getClearanceLink($uam_page, $uam_headers['url']));        
         $clearance_page     = curl_exec($curl_handle);
         $clearance_headers  = curl_getinfo($curl_handle);
         
@@ -108,7 +98,10 @@ class CloudflareBypass
          * 4. Extract "cf_clearance" cookie
          */
         if (!($cfclearance_cookie = $this->_getCurlCookie($clearance_headers['request_header'], 'cf_clearance'))) {
-            if ($attempts > $this->max_attempts) throw new \ErrorException("curlExec -> Too many attempts to get CF clearance!");
+            // Make sure we have not tried too many times...
+            if ($attempts > $this->max_attempts) throw new \ErrorException("curlExec -> Too many attempts to get CF clearance!");   
+            
+            // Repeat CF process but skip root-scope checks
             list($cfuid_cookie, $cfclearance_cookie) = $this->curlExec($curl_handle, $attempts + 1, false);
         }
 
@@ -127,8 +120,7 @@ class CloudflareBypass
          * 6. Set "__cfduid" and "cf_clearance" in original cURL handle
          */
         curl_setopt($curl_handle_orig, CURLOPT_COOKIELIST, $cfduid_cookie);
-        curl_setopt($curl_handle_orig, CURLOPT_COOKIELIST, $cfclearance_cookie);    
-        
+        curl_setopt($curl_handle_orig, CURLOPT_COOKIELIST, $cfclearance_cookie);
         $this->curl_cookies = array();
         
         return curl_exec($curl_handle); 
@@ -196,10 +188,7 @@ class CloudflareBypass
 
         /*
          * 2. Cloudflare UAM page contains the following strings:
-         * - jschl_vc
-         * - pass
-         * - jschl_answer
-         * - /cdn-cgi/l/chk_jschl
+         * "jschl_vc", "pass", "jschl_answer", "/cdn-cgi/l/chk_jschl"
          */
         if (!(
             strpos($content, "jschl_vc")                !== false &&
