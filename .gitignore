@@ -27,5 +27,5 @@ Temporary Items
 .apdisk
 
 # Composer
-/vendor/
-/composer.lock
+/v2/vendor/
+/v2/composer.lock
