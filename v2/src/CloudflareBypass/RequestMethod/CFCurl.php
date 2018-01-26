@@ -6,7 +6,7 @@ class CFCurl extends \CloudflareBypass\CFCore
     /**
      * Bypasses cloudflare using a curl handle. Given a curl handle this method will behave 
      * like "curl_exec" however it will take care of the IUAM page if it pops up. This method 
-     * creates a copy of the curl handle passed through for CF process.
+     * creates a copy of the curl handle passed through for the CF process.
      *
      * @access public
      * @param resource $ch cURL handle

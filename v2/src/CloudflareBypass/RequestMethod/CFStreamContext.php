@@ -3,57 +3,57 @@ namespace CloudflareBypass\RequestMethod;
 
 class CFStreamContext extends \CloudflareBypass\CFCore
 {
-	/**
-	 * Given a URL and a context stream / array, if URL is protected by the Cloudflare 
-	 * IUAM page will add the "__cfduid" and "cf_clearance" cookies to the cookies set 
-	 * (or update them if they exist).
-	 *
-	 * @access public
-	 * @param string $url Request URL
-	 * @param mixed $context Stream / array of context options
-	 * @throws \ErrorException if $url is not a valid URL
-	 * @throws \ErrorException if $context if not valid context.
-	 * @return resource $context
-	 */
-	public function create($url, $context, $stream = null, $root_scope = true, $attempt = 1)
-	{
-		$method = null;
-		$follow_location = 0;
+    /**
+     * Given a URL and a context (stream / array), if URL is protected by the Cloudflare,
+     * this method will add the "__cfduid" and "cf_clearance" cookies to the "Cookie" header 
+     * (or update them if they exist).
+     *
+     * @access public
+     * @param string $url Request URL
+     * @param mixed $context Stream / array of context options
+     * @throws \ErrorException if $url is not a valid URL
+     * @throws \ErrorException if $context if not valid context.
+     * @return resource $context
+     */
+    public function create($url, $context, $stream = null, $root_scope = true, $attempt = 1)
+    {
+        $method = null;
+        $follow_location = 0;
 
-		if ($root_scope) {
-			// Extract array if context is a resource.
-			if (is_resource($context)) {
-				$context = stream_context_get_options($context);
-			}
+        if ($root_scope) {
+            // Extract array if context is a resource.
+            if (is_resource($context)) {
+                $context = stream_context_get_options($context);
+            }
 
-			// Store original request method.
-			$method = isset($context['http']['method']) ? $context['http']['method'] : 'GET';
+            // Store original request method.
+            $method = isset($context['http']['method']) ? $context['http']['method'] : 'GET';
 
-			// Store original follow location.
-			$follow_location = isset($context['http']['follow_location']) ? $context['http']['follow_location'] : 1;		
+            // Store original follow location.
+            $follow_location = isset($context['http']['follow_location']) ? $context['http']['follow_location'] : 1;        
 
-			$stream = new StreamContext($url, $context);
+            $stream = new StreamContext($url, $context);
 
-			// Check if clearance tokens exists in a cache file.
-			if (isset($this->cache)) {
-				$components = parse_url($url);
+            // Check if clearance tokens exists in a cache file.
+            if (isset($this->cache)) {
+                $components = parse_url($url);
 
-				if (($cached = $this->cache->fetch($components['host'])) !== false) {
-					// Use cached clearance tokens.
-					$stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cached['__cfduid']));
-					$stream->setCookie('cf_clearance', str_replace('cf_clearance=', '', $cached['cf_clearance']));
-				}
-			}
+                if (($cached = $this->cache->fetch($components['host'])) !== false) {
+                    // Use cached clearance tokens.
+                    $stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cached['__cfduid']));
+                    $stream->setCookie('cf_clearance', str_replace('cf_clearance=', '', $cached['cf_clearance']));
+                }
+            }
 
-			// Set to GET request.
-			$stream->setHttpContextOption('method', 'GET');
-		}
+            // Set to GET request.
+            $stream->setHttpContextOption('method', 'GET');
+        }
 
-		// Request page.
-		$response = $stream->fileGetContents();
-		$response_info = array(
-			'http_code' 	=> $stream->getResponseHeader('http_code')
-		);
+        // Request page.
+        $response = $stream->fileGetContents();
+        $response_info = array(
+            'http_code'     => $stream->getResponseHeader('http_code')
+        );
 
         // Check if page is protected by Cloudflare.
         if (!$this->isProtected($response, $response_info)) {
@@ -80,18 +80,18 @@ class CFStreamContext extends \CloudflareBypass\CFCore
             return stream_context_create($stream->getContext());
         }
 
-       	$stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cfduid_cookie));
+        $stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cfduid_cookie));
 
-     	/*
+        /*
          * 3. Solve challenge and request clearance link
          */
-     	$stream->setURL($this->getClearanceLink($response, $url));
-     	$stream->setHttpContextOption('follow_location', 0);
+        $stream->setURL($this->getClearanceLink($response, $url));
+        $stream->setHttpContextOption('follow_location', 0);
 
-     	// Request clearance page.
-     	$stream->fileGetContents();
+        // Request clearance page.
+        $stream->fileGetContents();
 
-     	/*
+        /*
          * 4. Extract "cf_clearance" cookie
          */
         if (!($cfclearance_cookie = $stream->getCookie('cf_clearance'))) {
@@ -134,5 +134,5 @@ class CFStreamContext extends \CloudflareBypass\CFCore
         $stream->setCookie('cf_clearance', str_replace('cf_clearance=', '', $cfclearance_cookie));
 
         return stream_context_create($stream->getContext());
-	}
+    }
 }
