@@ -62,6 +62,7 @@ class StreamContext
     }
     
     /**
+     * Populates response headers into $this->response_headers.
      * Populates cookies set in response headers into $this->cookies.
      *
      * @access public

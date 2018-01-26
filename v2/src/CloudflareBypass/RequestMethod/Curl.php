@@ -161,7 +161,7 @@ class Curl
     }
 
     /**
-     * Populates request headers into $this->requestHeaders (header name -> value).
+     * Populates request headers into $this->request_headers (header name -> value).
      * Populates cookies into $this->cookies (cookie name -> cookie value).
      *
      * @access private 
