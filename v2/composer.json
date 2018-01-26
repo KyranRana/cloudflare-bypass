@@ -1,0 +1,22 @@
+{
+    "name": "kyranrana/cloudflare-bypass",
+    "description": "Library for helping bypass the Cloudflare IUAM page",
+    "license": "Unlicense",
+    "homepage": "https://github.com/KyranRana/cloudflare-bypass",
+    "keywords": [
+        "cloudflare", "bypass"
+    ],
+    "author": [
+        {
+            "name": "Kyran Rana"
+        }
+    ],
+    "require": {
+        "php": ">=5.5"
+    },
+	"autoload": {
+        "psr-4": {
+            "CloudflareBypass\\": "src/CloudflareBypass"
+        }
+    }
+}
