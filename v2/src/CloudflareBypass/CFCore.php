@@ -31,6 +31,13 @@ class CFCore extends CFBypass
     {
         // Set $this->cache
         if (isset($config['cache']) && $config['cache']) {
+            // Create Cache/ directory if it does not exist.
+            $dir = __DIR__ . '/Cache';
+            
+            if (!is_dir($dir)) {
+                mkdir($dir, 0777);
+            }
+
             $this->cache = new Storage();
         }
 
