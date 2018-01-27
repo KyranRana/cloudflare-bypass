@@ -25,25 +25,28 @@ class Storage
      * Returns clearance tokens from the specified cache file.
      *
      * @access public
-     * @param $siteHost Site host.
+     * @param $site_host Site host
+     * @throws \ErrorException if $site_host IS empty
      * @return array Clearance tokens or FALSE
      */
-    public function fetch($siteHost)
+    public function fetch($site_host)
     {
-        // Construct cache file endpoint.
-        $filename = __DIR__ . '/Cache/' . md5($siteHost);
-
-        if (file_exists($filename)) {
-            return json_decode(file_get_contents($filename), true);
+        if (trim($site_host) === "") {
+            throw new \ErrorException("Site host should not be empty!");
         }
 
-        // Try again?
-        if (preg_match('/^www./', $siteHost)) {
-            $filename = __DIR__ . '/Cache/' . md5(substr($siteHost, 4));
+        // Construct cache file endpoint.
+        $dir  =  __DIR__ . '/Cache/';
+        $file =  md5($site_host);
 
-            if (file_exists($filename)) {
-                return json_decode(file_get_contents($filename), true);
+        if (!file_exists($dir . $file)) {
+            if (preg_match('/^www./', $site_host)) {
+                $file = md5(substr($site_host, 4));
             }
+        }
+
+        if (file_exists($dir . $file)) {
+            return json_decode(file_get_contents($dir . $file), true);
         }
 
         return false;
@@ -57,34 +60,34 @@ class Storage
      * md5( file name )     {"__cfduid":"<cfduid>", "cf_clearance":"<cf_clearance>"}
      *
      * @access public
-     * @param string $siteHost site host name.
-     * @param array $clearanceTokens Associative array containing "__cfduid" and "cf_clearance" cookies
-     * @throws \ErrorException if $siteHost IS empty.
-     * @throws \ErrorException if $clearanceTokens IS missing token fields, OR contains rubbish.
-     * @throws \ErrorException if file_put_contents FAILS to write to file.
+     * @param string $site_host site host name
+     * @param array $clearance_tokens Associative array containing "__cfduid" and "cf_clearance" cookies
+     * @throws \ErrorException if $site_host IS empty
+     * @throws \ErrorException if $clearance_tokens IS missing token fields, OR contains rubbish
+     * @throws \ErrorException if file_put_contents FAILS to write to file
      */
-    public function store($siteHost, $clearanceTokens)
+    public function store($site_host, $clearance_tokens)
     {
-        if (trim($siteHost) === "") {
+        if (trim($site_host) === "") {
             throw new \ErrorException("Site host should not be empty!");
         }
 
         if (!(
-            is_array($clearanceTokens) && 
-            count($clearanceTokens) === 2 &&
-            isset($clearanceTokens['__cfduid']) &&
-            isset($clearanceTokens['cf_clearance'])
+            is_array($clearance_tokens) && 
+            count($clearance_tokens) === 2 &&
+            isset($clearance_tokens['__cfduid']) &&
+            isset($clearance_tokens['cf_clearance'])
         )) {
             throw new \ErrorException("Clearance tokens not in a valid format!");
         }
 
         // Construct cache file endpoint.
-        $filename = __DIR__ . '/Cache/' . md5($siteHost);
+        $filename = __DIR__ . '/Cache/' . md5($site_host);
 
         // Perform data retention duties.
         $this->retention();
 
-        if (!file_put_contents($filename, json_encode($clearanceTokens))) {
+        if (!file_put_contents($filename, json_encode($clearance_tokens))) {
             // Remove file if it exists.
             if (file_exists($filename)) {
                 unlink($filename);
