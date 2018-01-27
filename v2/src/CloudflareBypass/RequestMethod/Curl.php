@@ -190,7 +190,6 @@ class Curl
     }
 
     /**
-     * Populates response headers into $this->responseHeaders (header name -> value).
      * Populates cookies set into $this->cookies (cookie name -> full cookie).
      *
      * @access private

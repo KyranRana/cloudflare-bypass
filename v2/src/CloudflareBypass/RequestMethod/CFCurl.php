@@ -52,6 +52,7 @@ class CFCurl extends \CloudflareBypass\CFCore
             $ch_copy->setopt(CURLINFO_HEADER_OUT, true);
             $ch_copy->setopt(CURLOPT_RETURNTRANSFER, true);
             $ch_copy->setopt(CURLOPT_CUSTOMREQUEST, 'GET');
+            $ch_copy->setopt(CURLOPT_HTTPGET, true);
         } else {
             // Not in root scope so $ch is a clone.
             $ch_copy = $ch;
