@@ -4,6 +4,24 @@ namespace CloudflareBypass;
 class Storage
 {
     /**
+     * Creates Cache/ directory if it does NOT exist
+     *
+     * @access public
+     * @throws \ErrorException if cache directory CAN NOT be created
+     */
+    public function __construct()
+    {
+        // Create Cache/ directory if it does not exist.
+        $dir = __DIR__ . '/Cache';
+        
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, 0777)) {
+                throw new \ErrorException('Unable to create Cache directory!');
+            }
+        }
+    }
+
+    /**
      * Returns clearance tokens from the specified cache file.
      *
      * @access public
