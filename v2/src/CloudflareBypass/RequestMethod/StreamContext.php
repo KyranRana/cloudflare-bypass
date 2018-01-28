@@ -28,6 +28,12 @@ class StreamContext
     private $context = array();
 
     /**
+     * Stream context.
+     * @var resource
+     */
+    private $stream_context = array();
+
+    /**
      * Request URL.
      * @var string
      */
@@ -71,48 +77,58 @@ class StreamContext
     {
         return new StreamContext($this->url, $this->context);
     }
-    
-    /**
-     * Populates response headers into $this->response_headers.
-     * Populates cookies set in response headers into $this->cookies.
-     *
-     * @access public
-     * @see http://php.net/file-get-contents
-     * @return string
-     */
-    public function fileGetContents()
-    {
-        $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
-        $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
-
-        // Unfortunately file_get_contents doesn't return contents of a 503 page.
-        // Please advise if there is a better way to do this.
-        $ch = curl_init($this->url);
-
-        // Set options to match context.
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getCurlHttpHeaders());
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-
-        // Get request body.
-        $content = curl_exec($ch);
-        curl_close($ch);
-
-        // Get response headers.
-        $this->updateResponseHeaders();
-
-        return $content;
-    }
 
     /**
-     * Returns context array.
+     * Returns stream context.
      *
      * @access public
+     * @return resource
      */
     public function getContext()
     {
-        return $this->context;
+        return $this->stream_context;
+    }
+
+    /**
+     * Updates stream context
+     *
+     * @access public
+     */
+    public function updateContext()
+    {
+        $this->stream_context = stream_context_create($this->context);
+    }
+
+    /**
+     * Get cookies set for current request.
+     *
+     * @access public
+     * @return array
+     */
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * Get request headers set for current request.
+     *
+     * @access public
+     * @return array
+     */
+    public function getRequestHeaders()
+    {
+        return $this->request_headers;
+    }
+
+   /**
+     * Get response headers set for current request.
+     *
+     * @access public
+     */
+    public function getResponseHeaders()
+    {
+        return $this->response_headers;
     }
  
     /**
@@ -129,6 +145,46 @@ class StreamContext
         }
 
         return null;
+    }
+
+    /**
+     * Populates response headers into $this->response_headers.
+     * Populates cookies set in response headers into $this->cookies.
+     *
+     * @access public
+     * @see http://php.net/file-get-contents
+     * @return string
+     */
+    public function fileGetContents()
+    {
+        $this->updateContext();
+
+        // Try and get contents using file_get_contents.
+        $content = @file_get_contents($this->url, false, $this->stream_context);
+
+        if (!$content) {
+            $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
+            $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
+
+            // Unfortunately file_get_contents doesn't return contents of a 503 page.
+            // Please advise if there is a better way to do this.
+            $ch = curl_init($this->url);
+
+            // Set options to match context.
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getCurlHttpHeaders());
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+
+            // Get request body.
+            $content = curl_exec($ch);
+            curl_close($ch);
+        }
+
+        // Get response headers.
+        $this->updateResponseHeaders($http_response_header);
+
+        return $content;
     }
 
     /**
@@ -202,24 +258,21 @@ class StreamContext
      */
     public function setCookie($name, $val)
     {
+        $val = substr($val, strpos($val, '=')+1, -1);
         $settings = explode(';', $val);
 
         if (isset($this->request_headers['Cookie'])) {
+            // Add cookie to cookie list.
+            $match = "/(Cookie:.+?)\r\n/";
+            $replace = '$1' . $name . '=' . $settings[0] . ';';
+
             if (strpos($this->request_headers['Cookie'], $name . '=') !== false) {
                 // Update value for specified cookie.
-                $this->context['http']['header'] = preg_replace(
-                    "/(Cookie:.+?)$name=(.+?);/", 
-                    '$1' . $name . '=' . $settings[0] . ';', 
-                    $this->context['http']['header']
-                );
-            } else {
-                // Add cookie to cookie list.
-                $this->context['http']['header'] = preg_replace(
-                    "/(Cookie:.+?)\r\n/",
-                    '$1' . $name . '=' . $settings[0] . ";\r\n",
-                    $this->context['http']['header']
-                );
+                $match = "/(Cookie:.+?)$name=(.+?);/";
+                $replace .= "\r\n";
             }
+
+            $this->context['http']['header'] = preg_replace($match, $replace, $this->context['http']['header']);
         } else {
             if (empty($this->request_headers)) {
                 $this->context['http']['header'] = "";
@@ -280,15 +333,13 @@ class StreamContext
      * Updates $this->response_headers to match response headers from current request.
      *
      * @access private
+     * @param array $http_response_header
      */
-    private function updateResponseHeaders()
+    private function updateResponseHeaders($headers)
     {
         $this->response_headers = array();
 
-        // To update $http_response_header.
-        @file_get_contents($this->url, false, stream_context_create($this->context));
-
-        foreach ($http_response_header as $header) {
+        foreach ($headers as $header) {
             if (strpos($header, 'HTTP') === 0) {
                 // Store HTTP code as its own response header.
                 $matches = explode(' ', $header);
