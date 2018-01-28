@@ -13,7 +13,7 @@ class CFCore extends CFBypass
      * Use caching mechanism.
      * @var bool
      */
-    protected $cache;
+    protected $cache = true;
 
     /**
      * Configuration properties:

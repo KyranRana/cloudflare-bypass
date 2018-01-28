@@ -74,7 +74,6 @@ class Storage
 
         if (!(
             is_array($clearance_tokens) && 
-            count($clearance_tokens) === 2 &&
             isset($clearance_tokens['__cfduid']) &&
             isset($clearance_tokens['cf_clearance'])
         )) {
