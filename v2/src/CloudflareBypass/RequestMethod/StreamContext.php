@@ -34,6 +34,12 @@ class StreamContext
     private $stream_context = array();
 
     /**
+     * Follow location.
+     * @var bool
+     */
+    private $follow_location = false;
+
+    /**
      * Request URL.
      * @var string
      */
@@ -182,7 +188,24 @@ class StreamContext
         }
 
         // Get response headers.
-        $this->updateResponseHeaders($http_response_header);
+        if ($path = $this->updateResponseHeaders($http_response_header)) {
+            if (strpos($path, '/') === 0) {
+                $parsed_url = parse_url($this->url);
+                
+                $scheme     = isset($parsed_url['scheme'])   ? $parsed_url['scheme'] . '://' : '';
+                $host       = isset($parsed_url['host'])     ? $parsed_url['host'] : '';
+                $port       = isset($parsed_url['port'])     ? ':' . $parsed_url['port'] : '';
+                $user       = isset($parsed_url['user'])     ? $parsed_url['user'] : '';
+                $pass       = isset($parsed_url['pass'])     ? ':' . $parsed_url['pass'] : '';
+                $pass       = ($user || $pass)               ? $pass . '@' : '';
+                
+                $this->url = $scheme . $user . $pass . $host . $port . $path;
+            } else {
+                $this->url .= $path;
+            }
+
+            $content = $this->fileGetContents();
+        }
 
         return $content;
     }
@@ -246,7 +269,12 @@ class StreamContext
      */
     public function setHttpContextOption($name, $val)
     {
-        $this->context['http'][$name] = $val;
+        if ($name === 'follow_location') {
+            $this->follow_location = $val;
+            $this->context['http']['follow_location'] = 0;
+        } else {
+            $this->context['http'][$name] = $val;
+        }
     }
 
     /**
@@ -258,18 +286,23 @@ class StreamContext
      */
     public function setCookie($name, $val)
     {
-        $val = substr($val, strpos($val, '=')+1, -1);
+        $pos = strpos($val, '=');
+  
+        if ($pos !== false) {
+            $val = substr($val, strpos($val, '=')+1);
+        }
+
         $settings = explode(';', $val);
 
         if (isset($this->request_headers['Cookie'])) {
             // Add cookie to cookie list.
             $match = "/(Cookie:.+?)\r\n/";
-            $replace = '$1' . $name . '=' . $settings[0] . ';';
+            $replace = '$1' . $name . '=' . $settings[0] . ";\r\n";
 
             if (strpos($this->request_headers['Cookie'], $name . '=') !== false) {
                 // Update value for specified cookie.
                 $match = "/(Cookie:.+?)$name=(.+?);/";
-                $replace .= "\r\n";
+                $replace = '$1' . $name . '=' . $settings[0] . ';';
             }
 
             $this->context['http']['header'] = preg_replace($match, $replace, $this->context['http']['header']);
@@ -334,10 +367,12 @@ class StreamContext
      *
      * @access private
      * @param array $http_response_header
+     * @return string URI to follow
      */
     private function updateResponseHeaders($headers)
     {
         $this->response_headers = array();
+        $follow_uri = "";
 
         foreach ($headers as $header) {
             if (strpos($header, 'HTTP') === 0) {
@@ -351,13 +386,27 @@ class StreamContext
                 // Ignore other config options.
                 $val = substr($val, 0, strpos($val, ';'));
                 // Store cookie.
-                $this->cookies[$cookie] = $cookie . '=' . $val . ';';
+                $this->setCookie($cookie, $val);
             } elseif (strpos($header, ':') !== false) {
                 // Store response header.
                 list($name, $val) = explode(':', $header);
                 $this->response_headers[$name] = $val;
+                // Store location to follow.
+                if ($name === "Location") {
+                    $follow_uri = $val;
+                }
             }
         }
+
+        // Update cookies.
+        $this->updateRequestHeaders();
+        $this->updateCookies();
+
+        if ($this->follow_location && $follow_uri) {
+            return trim($follow_uri);
+        }
+
+        return "";
     }
 
     /**
