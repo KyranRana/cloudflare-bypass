@@ -60,6 +60,17 @@ class StreamContext
         $this->updateRequestHeaders();
         $this->updateCookies();
     }
+
+    /**
+     * Clones StreamContext object handle.
+     *
+     * @access public
+     * @return object StreamContext object
+     */
+    public function copyHandle()
+    {
+        return new StreamContext($this->url, $this->context);
+    }
     
     /**
      * Populates response headers into $this->response_headers.
@@ -71,16 +82,6 @@ class StreamContext
      */
     public function fileGetContents()
     {
-        // Convert headers into format compatible with cURL
-        $http_headers = explode("\r\n", $this->context['http']['header']);
-
-        // User agent can be set in 2 places, header and user_agent.
-        if (strpos($this->context['http']['header'], 'User-Agent') === false) {
-            if (isset($this->context['http']['user_agent'])) {
-                $http_headers[] = 'User-Agent: ' . $this->context['http']['user_agent'];
-            }
-        }
-
         $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
         $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
 
@@ -90,7 +91,7 @@ class StreamContext
 
         // Set options to match context.
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $http_headers);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getCurlHttpHeaders());
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
@@ -98,37 +99,8 @@ class StreamContext
         $content = curl_exec($ch);
         curl_close($ch);
 
-        // To populate $http_response_headers.
-        @file_get_contents($this->url, false, stream_context_create($this->context));
-
-        foreach ($http_response_header as $header) {
-            if (strpos($header, 'HTTP') === 0) {
-                // Store HTTP code as its own response header.
-                $matches = explode(' ', $header);
-                $this->response_headers['http_code'] = $matches[1];
-            } elseif (strpos($header, 'Set-Cookie') !== false) {
-                // Extract response cookie.
-                list($_, $cookie) = explode(':', $header);
-                list($name, $val) = explode('=', $cookie);
-                // Ignore other config options.
-                $val = substr($val, 0, strpos($val, ';'));
-                // Store cookie.
-                $this->cookie[$name] = $val;
-            } elseif (strpos($header, ':') !== false) {
-                // Store response header.
-                list($name, $val) = explode(':', $header);
-                $this->response_headers[$name] = $val;
-            }
-        }
-
-        // Set cookies.
-        foreach ($http_response_header as $header) {
-            if (strpos($header, 'Set-Cookie') !== false) {
-                // Match cookie name and value.
-                preg_match('/Set-Cookie: (\w+)(.+)/', $header, $matches);
-                $this->cookies[$matches[1]] = $matches[1] . $matches[2];
-            }
-        }
+        // Get response headers.
+        $this->updateResponseHeaders();
 
         return $content;
     }
@@ -197,7 +169,7 @@ class StreamContext
      * Set Request URL.
      *
      * @access public
-     * @param string $url Request URL.
+     * @param string $url Request URL
      * @throws \ErrorException if $url is not a valid URL
      */
     public function setURL($url)
@@ -213,8 +185,8 @@ class StreamContext
      * Sets option in HTTP context array.
      *
      * @access public
-     * @param string $name Option name.
-     * @param string $val Option value.
+     * @param string $name Option name
+     * @param string $val Option value
      */
     public function setHttpContextOption($name, $val)
     {
@@ -225,8 +197,8 @@ class StreamContext
      * Set Cookie in context array.
      *
      * @access public
-     * @param string $name Cookie name.
-     * @param string $val Cookie value.
+     * @param string $name Cookie name
+     * @param string $val Cookie value
      */
     public function setCookie($name, $val)
     {
@@ -264,6 +236,27 @@ class StreamContext
     }
 
     /**
+     * Converts context headers into format compatible with "CURLOPT_HTTPHEADER".
+     *
+     * @access private
+     * @return array
+     */
+    public function getCurlHttpHeaders()
+    {
+        // Convert headers into format compatible with cURL
+        $http_headers = explode("\r\n", $this->context['http']['header']);
+
+        // User agent can be set in 2 places, "header" and "user_agent".
+        if (strpos($this->context['http']['header'], 'User-Agent') === false) {
+            if (isset($this->context['http']['user_agent'])) {
+                $http_headers[] = 'User-Agent: ' . $this->context['http']['user_agent'];
+            }
+        }
+
+        return $http_headers;
+    }
+
+    /**
      * Updates $this->request_headers to match with context array. 
      *
      * @access private
@@ -284,6 +277,39 @@ class StreamContext
     }
 
     /**
+     * Updates $this->response_headers to match response headers from current request.
+     *
+     * @access private
+     */
+    private function updateResponseHeaders()
+    {
+        $this->response_headers = array();
+
+        // To update $http_response_header.
+        @file_get_contents($this->url, false, stream_context_create($this->context));
+
+        foreach ($http_response_header as $header) {
+            if (strpos($header, 'HTTP') === 0) {
+                // Store HTTP code as its own response header.
+                $matches = explode(' ', $header);
+                $this->response_headers['http_code'] = $matches[1];
+            } elseif (strpos($header, 'Set-Cookie') !== false) {
+                // Extract response cookie.
+                list($_, $fullval) = explode(':', $header);
+                list($cookie, $val) = explode('=', trim($fullval));
+                // Ignore other config options.
+                $val = substr($val, 0, strpos($val, ';'));
+                // Store cookie.
+                $this->cookies[$cookie] = $cookie . '=' . $val . ';';
+            } elseif (strpos($header, ':') !== false) {
+                // Store response header.
+                list($name, $val) = explode(':', $header);
+                $this->response_headers[$name] = $val;
+            }
+        }
+    }
+
+    /**
      * Updates $this->cookies to match with context array.
      *
      * @access private
@@ -298,8 +324,8 @@ class StreamContext
             // Set cookies.
             for ($i=0; $i<$cookies_count; $i++) {
                 if (strpos($cookies[$i], '=') !== false) {
-                    list($name, $val) = explode('=', $cookies[$i]);
-                    $this->cookies[$name] = $val;
+                    list($name, $val) = explode('=', trim($cookies[$i]));
+                    $this->cookies[$name] = $name . '=' . $val . ';';
                 }
             }
         }
