@@ -26,10 +26,11 @@ class CFCurl extends \CloudflareBypass\CFCore
                 $info = $ch->getinfo();
                 $components = parse_url($info['url']);
 
+                // Set clearance tokens.
                 if (($cached = $this->cache->fetch($components['host'])) !== false) {
-                    // Use cached clearance tokens.
-                    $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $cached['__cfduid']);
-                    $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $cached['cf_clearance']);
+                    foreach ($cached as $cookie => $val) {
+                        $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
+                    }
                 }
             }
 
@@ -50,9 +51,6 @@ class CFCurl extends \CloudflareBypass\CFCore
 
             // Assign neccessary options.
             $ch_copy->setopt(CURLINFO_HEADER_OUT, true);
-            $ch_copy->setopt(CURLOPT_RETURNTRANSFER, true);
-            $ch_copy->setopt(CURLOPT_CUSTOMREQUEST, 'GET');
-            $ch_copy->setopt(CURLOPT_HTTPGET, true);
         } else {
             // Not in root scope so $ch is a clone.
             $ch_copy = $ch;
@@ -62,29 +60,33 @@ class CFCurl extends \CloudflareBypass\CFCore
         $uam_response = $ch_copy->exec();
         $uam_response_info = $ch_copy->getinfo();
 
-        /*
-         * 1. Check if user agent is set in cURL handle
-         */
-        if ($root_scope && !$ch_copy->getRequestHeader('User-Agent')) {
-            throw new \ErrorException('CURLOPT_USERAGENT is a mandatory field!');
+        if ($root_scope) {
+            /*
+             * 1. Check if user agent is set in cURL handle
+             */
+            if (!$ch_copy->getRequestHeader('User-Agent')) {
+                throw new \ErrorException('CURLOPT_USERAGENT is a mandatory field!');
+            }
+
+            /*
+             * 2. Extract "__cfuid" cookie
+             */
+            if (!($cfduid_cookie = $ch_copy->getCookie('__cfduid'))) {
+                return $response;
+            }
+            
+            $ch_copy->setopt(CURLOPT_COOKIELIST, $cfduid_cookie);
         }
 
-        /*
-         * 2. Extract "__cfuid" cookie
-         */
-        if (!($cfduid_cookie = $ch_copy->getCookie('__cfduid'))) {
-            return $response;
-        }
-        
-        $ch_copy->setopt(CURLOPT_COOKIELIST, $cfduid_cookie);
-        
         /*
          * 3. Solve challenge and request clearance link
          */
         $ch_copy->setopt(CURLOPT_URL, $this->getClearanceLink($uam_response, $uam_response_info['url']));        
-        $ch_copy->setopt(CURLOPT_FOLLOWLOCATION, false);
+        $ch_copy->setopt(CURLOPT_FOLLOWLOCATION, true);
 
-        // Request clearance page
+        // GET clearance link.  
+        $ch_copy->setopt(CURLOPT_CUSTOMREQUEST, 'GET');
+        $ch_copy->setopt(CURLOPT_HTTPGET, true);
         $ch_copy->exec();
 
         /*
@@ -95,29 +97,33 @@ class CFCurl extends \CloudflareBypass\CFCore
                 throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");   
             }
             
-            list($cfduid_cookie, $cfclearance_cookie) = $this->exec($ch, false, $retry+1);
+            $cfclearance_cookie = $this->exec($ch, false, $retry+1);
         }
 
+        // Not in root scope, return clearance cookie.
         if ($cfclearance_cookie && !$root_scope) {
-            return array($cfduid_cookie, $cfclearance_cookie);
+            return $cfclearance_cookie;
         }
 
         if (isset($this->cache)) {
+            $cookies = array();
             $components = parse_url($uam_response_info['url']);
 
-            // Store cookies in cache            
-            $this->cache->store($components['host'], array(
-                '__cfduid'      => $cfduid_cookie,
-                'cf_clearance'  => $cfclearance_cookie
-            ));
+            foreach ($ch_copy->getCookies() as $cookie => $val) {
+                $cookies[$cookie] = $val;
+            }
+
+            // Store clearance tokens in cache.
+            $this->cache->store($components['host'], $cookies);
         }
        
         /*
          * 5. Set "__cfduid" and "cf_clearance" in original cURL handle
          */
-        $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $cfduid_cookie);
-        $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $cfclearance_cookie);
-        
+        foreach ($ch_copy->getCookies() as $cookie => $val) {
+            $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
+        }
+
         return $ch->exec();
     }
 }
