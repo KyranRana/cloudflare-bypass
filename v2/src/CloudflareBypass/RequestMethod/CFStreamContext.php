@@ -31,8 +31,9 @@ class CFStreamContext extends \CloudflareBypass\CFCore
 
                 if (($cached = $this->cache->fetch($components['host'])) !== false) {
                     // Set clearance tokens.
-                    $stream->setCookie('__cfduid', $cached['__cfduid']);
-                    $stream->setCookie('cf_clearance', $cached['cf_clearance']);
+                    foreach ($cached as $cookie => $val) {
+                        $stream->setCookie($cookie, $val);
+                    }
                 }
             }
         }
@@ -97,13 +98,15 @@ class CFStreamContext extends \CloudflareBypass\CFCore
         }
 
         if (isset($this->cache)) {
+            $cookies = array();
             $components = parse_url($url);
 
-            // Store cookies in cache            
-            $this->cache->store($components['host'], array(
-                '__cfduid'      => $cfduid_cookie,
-                'cf_clearance'  => $cfclearance_cookie
-            ));
+            foreach ($stream_copy->getCookies() as $cookie => $val) {
+                $cookies[$cookie] = $val;
+            }
+
+            // Store clearance tokens in cache.
+            $this->cache->store($components['host'], $cookies);
         }
 
         /*
