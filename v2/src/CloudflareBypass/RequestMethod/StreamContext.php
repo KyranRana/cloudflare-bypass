@@ -189,6 +189,7 @@ class StreamContext
 
         // Get response headers.
         if ($path = $this->updateResponseHeaders($http_response_header)) {
+            // Follow location...
             if (strpos($path, '/') === 0) {
                 $parsed_url = parse_url($this->url);
                 
@@ -401,7 +402,8 @@ class StreamContext
         // Update cookies.
         $this->updateRequestHeaders();
         $this->updateCookies();
-
+        
+        // Follow location if location is set and follow location is enabled
         if ($this->follow_location && $follow_uri) {
             return trim($follow_uri);
         }
