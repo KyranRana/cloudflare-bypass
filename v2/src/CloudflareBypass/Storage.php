@@ -110,8 +110,8 @@ class Storage
                     continue;
                 }
         
-                // Delete file if last accessed over 24 hours ago.
-                if (time()-fileatime($dir . $file) > 86400) {
+                // Delete file if last modified over 24 hours ago.
+                if (time()-filemtime($dir . $file) > 86400) {
                     unlink($dir . $file);
                 }
             }
