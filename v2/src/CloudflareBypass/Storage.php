@@ -4,14 +4,14 @@ namespace CloudflareBypass;
 class Storage
 {
     /**
-     * Creates Cache/ directory if it does NOT exist
+     * Creates Cache directory if it does NOT exist
      *
      * @access public
      * @throws \ErrorException if cache directory CAN NOT be created
      */
     public function __construct()
     {
-        // Create Cache/ directory if it does not exist.
+        // Create Cache directory if it does not exist.
         $dir = __DIR__ . '/Cache';
         
         if (!is_dir($dir)) {
