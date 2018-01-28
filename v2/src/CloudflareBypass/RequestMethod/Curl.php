@@ -38,6 +38,26 @@ class Curl
     }
 
     /**
+     * Get request headers set for current request.
+     *
+     * @access public
+     */
+    public function getRequestHeaders()
+    {
+        return $this->request_headers;
+    }
+
+    /**
+     * Get cookies set for current request.
+     *
+     * @access public
+     */
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+    /**
      * Enables cURL object handle to fetch and store response headers and cookies.
      * WARNING: Overrides "CURLOPT_HEADERFUNCTION".
      *
@@ -178,13 +198,13 @@ class Curl
 
         if (strpos($header, 'Cookie') !== false) {
             // Convert string into array of cookies.
-            $cookies = explode(';', $header);
+            $cookies = explode(';', substr($header, strpos($header, ':')+1));
             $cookies_count = count($cookies);
 
             // Store cookies.
             for ($i=0; $i<$cookies_count; $i++) {
-                list($cookie, $val) = explode('=', $cookies[$i]);
-                $this->cookies[$cookie] = $val . ';';                   
+                list($cookie, $val) = explode('=', trim($cookies[$i]));
+                $this->cookies[$cookie] = $cookie . '=' . $val . ';';                   
             }
         }
     }
@@ -201,7 +221,7 @@ class Curl
     {
         if (strpos($header, 'Set-Cookie') !== false) {
             // Match cookie name and value.
-            preg_match('/Set-Cookie: (\w+)(.+)/', $header, $matches);
+            preg_match('/Set\-Cookie: ([^=]+)(.+)/', $header, $matches);
             $this->cookies[$matches[1]] = $matches[1] . $matches[2];
         }
 
