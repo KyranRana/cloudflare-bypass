@@ -17,20 +17,11 @@ class CFStreamContext extends \CloudflareBypass\CFCore
      */
     public function create($url, $context, $stream = null, $root_scope = true, $attempt = 1)
     {
-        $method = null;
-        $follow_location = 0;
-
         if ($root_scope) {
             // Extract array if context is a resource.
             if (is_resource($context)) {
                 $context = stream_context_get_options($context);
             }
-
-            // Store original request method.
-            $method = isset($context['http']['method']) ? $context['http']['method'] : 'GET';
-
-            // Store original follow location.
-            $follow_location = isset($context['http']['follow_location']) ? $context['http']['follow_location'] : 1;        
 
             $stream = new StreamContext($url, $context);
 
@@ -39,100 +30,92 @@ class CFStreamContext extends \CloudflareBypass\CFCore
                 $components = parse_url($url);
 
                 if (($cached = $this->cache->fetch($components['host'])) !== false) {
-                    // Use cached clearance tokens.
-                    $stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cached['__cfduid']));
-                    $stream->setCookie('cf_clearance', str_replace('cf_clearance=', '', $cached['cf_clearance']));
+                    // Set clearance tokens.
+                    foreach ($cached as $cookie => $val) {
+                        $stream->setCookie($cookie, $val);
+                    }
                 }
             }
-
-            // Set to GET request.
-            $stream->setHttpContextOption('method', 'GET');
         }
 
-        // Request page.
+        // Request original page.
         $response = $stream->fileGetContents();
         $response_info = array(
             'http_code'     => $stream->getResponseHeader('http_code')
         );
 
-        // Check if page is protected by Cloudflare.
-        if (!$this->isProtected($response, $response_info)) {
-            // Set original request method.
-            $stream->setHttpContextOption('method', $method);
+        if ($root_scope) {
+            // Check if page is protected by Cloudflare.
+            if (!$this->isProtected($response, $response_info)) {
+                return $stream->getContext();
+            }
 
-            return stream_context_create($stream->getContext());
+            /*
+             * 1. Check if user agent is set in context
+             */
+            if (!$stream->getRequestHeader('User-Agent')) {
+                throw new \ErrorException('User agent needs to be set in context!');
+            }
+
+            /*
+             * 2. Extract "__cfuid" cookie
+             */
+            if (!($cfduid_cookie = $stream->getCookie('__cfduid'))) {
+                return $stream->getContext();
+            }
+
+            // Clone streamcontext object handle.
+            $stream_copy = $stream->copyHandle();
+            $stream_copy->setCookie('__cfduid', $cfduid_cookie);
+        } else {
+            // Not in root scope so $stream is a clone.
+            $stream_copy = $stream;
         }
-
-        /*
-         * 1. Check if user agent is set in context
-         */
-        if ($root_scope && !$stream->getRequestHeader('User-Agent')) {
-            throw new \ErrorException('User agent needs to be set in context!');
-        }
-
-        /*
-         * 2. Extract "__cfuid" cookie
-         */
-        if (!($cfduid_cookie = $stream->getCookie('__cfduid'))) {
-            // Set original request method.
-            $stream->setHttpContextOption('method', $method);
-
-            return stream_context_create($stream->getContext());
-        }
-
-        $stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cfduid_cookie));
 
         /*
          * 3. Solve challenge and request clearance link
          */
-        $stream->setURL($this->getClearanceLink($response, $url));
-        $stream->setHttpContextOption('follow_location', 0);
+        $stream_copy->setURL($this->getClearanceLink($response, $url));
+        $stream_copy->setHttpContextOption('follow_location', 1);
 
-        // Request clearance page.
-        $stream->fileGetContents();
+        // GET clearance link.
+        $stream_copy->setHttpContextOption('method', 'GET');
+        $stream_copy->fileGetContents();
 
         /*
          * 4. Extract "cf_clearance" cookie
          */
-        if (!($cfclearance_cookie = $stream->getCookie('cf_clearance'))) {
+        if (!($cfclearance_cookie = $stream_copy->getCookie('cf_clearance'))) {
             if ($retry > $this->max_retries) {
                 throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");   
             }
             
-            list($cfduid_cookie, $cfclearance_cookie) = $this->create($url, false, $stream, false, $retry+1);
+            $cfclearance_cookie = $this->create($url, false, $stream_copy, false, $retry+1);
         }
 
-        if ($cfclearance_cookie && !$root_scope) {
-            return array($cfduid_cookie, $cfclearance_cookie);
+        if (!$root_scope) {
+            return $cfclearance_cookie;
         }
 
         if (isset($this->cache)) {
+            $cookies = array();
             $components = parse_url($url);
 
-            // Store cookies in cache            
-            $this->cache->store($components['host'], array(
-                '__cfduid'      => $cfduid_cookie,
-                'cf_clearance'  => $cfclearance_cookie
-            ));
+            foreach ($stream_copy->getCookies() as $cookie => $val) {
+                $cookies[$cookie] = $val;
+            }
+
+            // Store clearance tokens in cache.
+            $this->cache->store($components['host'], $cookies);
         }
 
         /*
-         * 5. Revert all stream options.
+         * 5. Set "__cfduid" and "cf_clearance" in original stream
          */
+        $stream->setCookie('__cfduid', $cfduid_cookie);
+        $stream->setCookie('cf_clearance', $cfclearance_cookie);
+        $stream->updateContext();
 
-        // Set original URL.
-        $stream->setURL($url);
-
-        // Set original follow location.
-        $stream->setHttpContextOption('follow_location', $follow_location);
-
-        // Set original request method.
-        $stream->setHttpContextOption('method', $method);
-
-        // Set clearance tokens.
-        $stream->setCookie('__cfduid', str_replace('__cfduid=', '', $cfduid_cookie));
-        $stream->setCookie('cf_clearance', str_replace('cf_clearance=', '', $cfclearance_cookie));
-
-        return stream_context_create($stream->getContext());
+        return $stream->getContext();
     }
 }

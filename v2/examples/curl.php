@@ -4,7 +4,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use CloudflareBypass\RequestMethod\CFCurl;
 
 $curl_cf_wrapper = new CFCurl(array(
-    'cache'         => true,   // Caches clearance tokens into Cache/ folder under md5(site host)
+    'cache'         => true,   // Caching now enabled by default; stores clearance tokens in Cache folder
     'max_attempts'  => 5       // Max attempts to try and get CF clearance
 ));
 

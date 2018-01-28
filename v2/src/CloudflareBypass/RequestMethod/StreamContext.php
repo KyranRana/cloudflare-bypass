@@ -28,6 +28,18 @@ class StreamContext
     private $context = array();
 
     /**
+     * Stream context.
+     * @var resource
+     */
+    private $stream_context = array();
+
+    /**
+     * Follow location.
+     * @var bool
+     */
+    private $follow_location = false;
+
+    /**
      * Request URL.
      * @var string
      */
@@ -60,87 +72,69 @@ class StreamContext
         $this->updateRequestHeaders();
         $this->updateCookies();
     }
-    
+
     /**
-     * Populates response headers into $this->response_headers.
-     * Populates cookies set in response headers into $this->cookies.
+     * Clones StreamContext object handle.
      *
      * @access public
-     * @see http://php.net/file-get-contents
-     * @return string
+     * @return object StreamContext object
      */
-    public function fileGetContents()
+    public function copyHandle()
     {
-        // Convert headers into format compatible with cURL
-        $http_headers = explode("\r\n", $this->context['http']['header']);
-
-        // User agent can be set in 2 places, header and user_agent.
-        if (strpos($this->context['http']['header'], 'User-Agent') === false) {
-            if (isset($this->context['http']['user_agent'])) {
-                $http_headers[] = 'User-Agent: ' . $this->context['http']['user_agent'];
-            }
-        }
-
-        $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
-        $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
-
-        // Unfortunately file_get_contents doesn't return contents of a 503 page.
-        // Please advise if there is a better way to do this.
-        $ch = curl_init($this->url);
-
-        // Set options to match context.
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $http_headers);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-
-        // Get request body.
-        $content = curl_exec($ch);
-        curl_close($ch);
-
-        // To populate $http_response_headers.
-        @file_get_contents($this->url, false, stream_context_create($this->context));
-
-        foreach ($http_response_header as $header) {
-            if (strpos($header, 'HTTP') === 0) {
-                // Store HTTP code as its own response header.
-                $matches = explode(' ', $header);
-                $this->response_headers['http_code'] = $matches[1];
-            } elseif (strpos($header, 'Set-Cookie') !== false) {
-                // Extract response cookie.
-                list($_, $cookie) = explode(':', $header);
-                list($name, $val) = explode('=', $cookie);
-                // Ignore other config options.
-                $val = substr($val, 0, strpos($val, ';'));
-                // Store cookie.
-                $this->cookie[$name] = $val;
-            } elseif (strpos($header, ':') !== false) {
-                // Store response header.
-                list($name, $val) = explode(':', $header);
-                $this->response_headers[$name] = $val;
-            }
-        }
-
-        // Set cookies.
-        foreach ($http_response_header as $header) {
-            if (strpos($header, 'Set-Cookie') !== false) {
-                // Match cookie name and value.
-                preg_match('/Set-Cookie: (\w+)(.+)/', $header, $matches);
-                $this->cookies[$matches[1]] = $matches[1] . $matches[2];
-            }
-        }
-
-        return $content;
+        return new StreamContext($this->url, $this->context);
     }
 
     /**
-     * Returns context array.
+     * Returns stream context.
      *
      * @access public
+     * @return resource
      */
     public function getContext()
     {
-        return $this->context;
+        return $this->stream_context;
+    }
+
+    /**
+     * Updates stream context
+     *
+     * @access public
+     */
+    public function updateContext()
+    {
+        $this->stream_context = stream_context_create($this->context);
+    }
+
+    /**
+     * Get cookies set for current request.
+     *
+     * @access public
+     * @return array
+     */
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * Get request headers set for current request.
+     *
+     * @access public
+     * @return array
+     */
+    public function getRequestHeaders()
+    {
+        return $this->request_headers;
+    }
+
+   /**
+     * Get response headers set for current request.
+     *
+     * @access public
+     */
+    public function getResponseHeaders()
+    {
+        return $this->response_headers;
     }
  
     /**
@@ -157,6 +151,63 @@ class StreamContext
         }
 
         return null;
+    }
+
+    /**
+     * Populates response headers into $this->response_headers.
+     * Populates cookies set in response headers into $this->cookies.
+     *
+     * @access public
+     * @see http://php.net/file-get-contents
+     * @return string
+     */
+    public function fileGetContents()
+    {
+        $this->updateContext();
+
+        // Try and get contents using file_get_contents.
+        $content = @file_get_contents($this->url, false, $this->stream_context);
+
+        if (!$content) {
+            $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
+            $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
+
+            // Unfortunately file_get_contents doesn't return contents of a 503 page.
+            // Please advise if there is a better way to do this.
+            $ch = curl_init($this->url);
+
+            // Set options to match context.
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getCurlHttpHeaders());
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+
+            // Get request body.
+            $content = curl_exec($ch);
+            curl_close($ch);
+        }
+
+        // Get response headers.
+        if ($path = $this->updateResponseHeaders($http_response_header)) {
+            if (strpos($path, '/') === 0) {
+                $parsed_url = parse_url($this->url);
+                
+                $scheme     = isset($parsed_url['scheme'])   ? $parsed_url['scheme'] . '://' : '';
+                $host       = isset($parsed_url['host'])     ? $parsed_url['host'] : '';
+                $port       = isset($parsed_url['port'])     ? ':' . $parsed_url['port'] : '';
+                $user       = isset($parsed_url['user'])     ? $parsed_url['user'] : '';
+                $pass       = isset($parsed_url['pass'])     ? ':' . $parsed_url['pass'] : '';
+                $pass       = ($user || $pass)               ? $pass . '@' : '';
+                
+                $this->url = $scheme . $user . $pass . $host . $port . $path;
+            } else {
+                $this->url .= $path;
+            }
+
+            $content = $this->fileGetContents();
+        }
+
+        return $content;
     }
 
     /**
@@ -197,7 +248,7 @@ class StreamContext
      * Set Request URL.
      *
      * @access public
-     * @param string $url Request URL.
+     * @param string $url Request URL
      * @throws \ErrorException if $url is not a valid URL
      */
     public function setURL($url)
@@ -213,41 +264,48 @@ class StreamContext
      * Sets option in HTTP context array.
      *
      * @access public
-     * @param string $name Option name.
-     * @param string $val Option value.
+     * @param string $name Option name
+     * @param string $val Option value
      */
     public function setHttpContextOption($name, $val)
     {
-        $this->context['http'][$name] = $val;
+        if ($name === 'follow_location') {
+            $this->follow_location = $val;
+            $this->context['http']['follow_location'] = 0;
+        } else {
+            $this->context['http'][$name] = $val;
+        }
     }
 
     /**
      * Set Cookie in context array.
      *
      * @access public
-     * @param string $name Cookie name.
-     * @param string $val Cookie value.
+     * @param string $name Cookie name
+     * @param string $val Cookie value
      */
     public function setCookie($name, $val)
     {
+        $pos = strpos($val, '=');
+  
+        if ($pos !== false) {
+            $val = substr($val, strpos($val, '=')+1);
+        }
+
         $settings = explode(';', $val);
 
         if (isset($this->request_headers['Cookie'])) {
+            // Add cookie to cookie list.
+            $match = "/(Cookie:.+?)\r\n/";
+            $replace = '$1' . $name . '=' . $settings[0] . ";\r\n";
+
             if (strpos($this->request_headers['Cookie'], $name . '=') !== false) {
                 // Update value for specified cookie.
-                $this->context['http']['header'] = preg_replace(
-                    "/(Cookie:.+?)$name=(.+?);/", 
-                    '$1' . $name . '=' . $settings[0] . ';', 
-                    $this->context['http']['header']
-                );
-            } else {
-                // Add cookie to cookie list.
-                $this->context['http']['header'] = preg_replace(
-                    "/(Cookie:.+?)\r\n/",
-                    '$1' . $name . '=' . $settings[0] . ";\r\n",
-                    $this->context['http']['header']
-                );
+                $match = "/(Cookie:.+?)$name=(.+?);/";
+                $replace = '$1' . $name . '=' . $settings[0] . ';';
             }
+
+            $this->context['http']['header'] = preg_replace($match, $replace, $this->context['http']['header']);
         } else {
             if (empty($this->request_headers)) {
                 $this->context['http']['header'] = "";
@@ -261,6 +319,27 @@ class StreamContext
 
         $this->updateRequestHeaders();
         $this->updateCookies();
+    }
+
+    /**
+     * Converts context headers into format compatible with "CURLOPT_HTTPHEADER".
+     *
+     * @access private
+     * @return array
+     */
+    public function getCurlHttpHeaders()
+    {
+        // Convert headers into format compatible with cURL
+        $http_headers = explode("\r\n", $this->context['http']['header']);
+
+        // User agent can be set in 2 places, "header" and "user_agent".
+        if (strpos($this->context['http']['header'], 'User-Agent') === false) {
+            if (isset($this->context['http']['user_agent'])) {
+                $http_headers[] = 'User-Agent: ' . $this->context['http']['user_agent'];
+            }
+        }
+
+        return $http_headers;
     }
 
     /**
@@ -284,6 +363,53 @@ class StreamContext
     }
 
     /**
+     * Updates $this->response_headers to match response headers from current request.
+     *
+     * @access private
+     * @param array $http_response_header
+     * @return string URI to follow
+     */
+    private function updateResponseHeaders($headers)
+    {
+        $this->response_headers = array();
+        $follow_uri = "";
+
+        foreach ($headers as $header) {
+            if (strpos($header, 'HTTP') === 0) {
+                // Store HTTP code as its own response header.
+                $matches = explode(' ', $header);
+                $this->response_headers['http_code'] = $matches[1];
+            } elseif (strpos($header, 'Set-Cookie') !== false) {
+                // Extract response cookie.
+                list($_, $fullval) = explode(':', $header);
+                list($cookie, $val) = explode('=', trim($fullval));
+                // Ignore other config options.
+                $val = substr($val, 0, strpos($val, ';'));
+                // Store cookie.
+                $this->setCookie($cookie, $val);
+            } elseif (strpos($header, ':') !== false) {
+                // Store response header.
+                list($name, $val) = explode(':', $header);
+                $this->response_headers[$name] = $val;
+                // Store location to follow.
+                if ($name === "Location") {
+                    $follow_uri = $val;
+                }
+            }
+        }
+
+        // Update cookies.
+        $this->updateRequestHeaders();
+        $this->updateCookies();
+
+        if ($this->follow_location && $follow_uri) {
+            return trim($follow_uri);
+        }
+
+        return "";
+    }
+
+    /**
      * Updates $this->cookies to match with context array.
      *
      * @access private
@@ -298,8 +424,8 @@ class StreamContext
             // Set cookies.
             for ($i=0; $i<$cookies_count; $i++) {
                 if (strpos($cookies[$i], '=') !== false) {
-                    list($name, $val) = explode('=', $cookies[$i]);
-                    $this->cookies[$name] = $val;
+                    list($name, $val) = explode('=', trim($cookies[$i]));
+                    $this->cookies[$name] = $name . '=' . $val . ';';
                 }
             }
         }
