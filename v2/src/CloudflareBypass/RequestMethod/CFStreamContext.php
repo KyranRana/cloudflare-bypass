@@ -11,8 +11,11 @@ class CFStreamContext extends \CloudflareBypass\CFCore
      * @access public
      * @param string $url Request URL
      * @param mixed $context Stream / array of context options
+     * @param resource $stream Stream context; used in retry process (DONT MODIFY)
+     * @param bool $root_scope Used in retry process (DON'T MODIFY)
+     * @param integer $retry   Used in retry process (DON'T MODIFY)
      * @throws \ErrorException if $url is not a valid URL
-     * @throws \ErrorException if $context if not valid context.
+     * @throws \ErrorException if $context if not valid context
      * @return resource $context
      */
     public function create($url, $context, $stream = null, $root_scope = true, $attempt = 1)
