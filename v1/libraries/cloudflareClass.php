@@ -95,8 +95,8 @@ class cloudflare {
 			$cfClearanceLink = $siteNetLoc.'/cdn-cgi/l/chk_jschl?'.http_build_query($cfAnswerParams);
 			// attempt to get cloudflare clearance cookie
 			$cfClearanceResp = self::getPage($cfClearanceLink, $siteNetLoc);
-			// clear cookie log
-			unlink('cf-cookies/cookies.txt');
+			// clear cookie log if cookie log exists
+			if(file_exists('cf-cookies/cookies.txt')) unlink('cf-cookies/cookies.txt');
 			// if we fail to get the clearance cookie
 			if(!$cfClearanceCookie = self::getPageCookie($cfClearanceResp['headers'], 'cf_clearance')) {
 				// if we haven't exceeded the max attempts
