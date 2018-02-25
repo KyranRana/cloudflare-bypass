@@ -29,7 +29,7 @@ class CFStreamContext extends \CloudflareBypass\CFCore
             $stream = new StreamContext($url, $context);
 
             // Check if clearance tokens exists in a cache file.
-            if (isset($this->cache)) {
+            if (isset($this->cache) && $this->cache) {
                 $components = parse_url($url);
 
                 if (($cached = $this->cache->fetch($components['host'])) !== false) {
@@ -100,7 +100,7 @@ class CFStreamContext extends \CloudflareBypass\CFCore
             return $cfclearance_cookie;
         }
 
-        if (isset($this->cache)) {
+        if (isset($this->cache) && $this->cache) {
             $cookies = array();
             $components = parse_url($url);
 
