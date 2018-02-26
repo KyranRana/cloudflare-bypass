@@ -40,7 +40,7 @@ class GuzzleHttpTest extends TestCase
         $stream = $stream_cf_wrapper->create($url, $opts);
         $client = new Client();
 
-        $cookieJar = CookieJar::fromArray(array_map(function($val) { return explode("=", substr($val, 0, -1))[1]; }, $stream->getCookies()), parse_url($this->url)['host']);
+        $cookieJar = CookieJar::fromArray($stream->getCookiesOriginal(), parse_url($this->url)['host']);
 
         $response = $client->request('GET', $this->url, [
             'headers' => [
