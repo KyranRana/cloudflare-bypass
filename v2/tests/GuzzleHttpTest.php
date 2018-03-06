@@ -3,24 +3,26 @@
 use PHPUnit\Framework\TestCase;
 
 use CloudflareBypass\RequestMethod\CFStream;
-use CloudflareBypass\RequestMethod\CFCurl;
 use GuzzleHttp\Client;
-use GuzzleHttp\Cookie\SetCookie as CookieParser;
 use GuzzleHttp\Cookie\CookieJar;
 
 class GuzzleHttpTest extends TestCase
 {
 
     /**
-     * Test url
-     * 
+     * Url to test
+     *
      * @var string
      */
     protected $url = "https://coinkite.com";
-
-    public function test200()
+    
+    /**
+     * Test 503 (without bypass)
+     *
+     * @return void
+     */
+    public function test503()
     {
-
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,  // Caching now enabled by default; stores clearance tokens in Cache folder
             'max_attempts'  => 5      // Max attempts to try and get CF clearance
@@ -28,7 +30,33 @@ class GuzzleHttpTest extends TestCase
 
         $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
 
-        // Get Example: 1
+        $client = new Client();
+
+        $response = $client->request('GET', $this->url, [
+            'headers' => [
+                'User-Agent' => "$agent",
+            ],
+            'http_errors' => false,
+            // 'debug' => true
+        ]);
+
+        $this->assertEquals(503, $response->getStatusCode());
+    }
+
+    /**
+     * Test 200 (with bypass)
+     *
+     * @return void
+     */
+    public function test200()
+    {
+        $stream_cf_wrapper = new CFStream(array(
+            'cache'         => true,  // Caching now enabled by default; stores clearance tokens in Cache folder
+            'max_attempts'  => 5      // Max attempts to try and get CF clearance
+        ));
+
+        $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
+
         $opts = array(
             'http' => array(
                 'method' => "GET",
@@ -36,8 +64,7 @@ class GuzzleHttpTest extends TestCase
             )
         );
 
-        $url = $this->url;
-        $stream = $stream_cf_wrapper->create($url, $opts);
+        $stream = $stream_cf_wrapper->create($this->url, $opts);
         $client = new Client();
 
         $cookieJar = CookieJar::fromArray($stream->getCookiesOriginal(), parse_url($this->url)['host']);
@@ -45,13 +72,11 @@ class GuzzleHttpTest extends TestCase
         $response = $client->request('GET', $this->url, [
             'headers' => [
                 'User-Agent' => "$agent",
-            ], 
+            ],
             'cookies' => $cookieJar,
             // 'debug' => true
         ]);
 
         $this->assertEquals(200, $response->getStatusCode());
-
     }
-
 }
