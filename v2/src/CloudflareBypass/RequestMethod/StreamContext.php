@@ -10,6 +10,12 @@ class StreamContext
     private $cookies = array();
 
     /**
+     * Cookies set per request.
+     * @var array
+     */
+    private $cookies_original = array();
+
+    /**
      * Request headers per request.
      * @var array
      */
@@ -428,8 +434,19 @@ class StreamContext
                 if (strpos($cookies[$i], '=') !== false) {
                     list($name, $val) = explode('=', trim($cookies[$i]));
                     $this->cookies[$name] = $name . '=' . $val . ';';
+                    $this->cookies_original[$name] = $val;
                 }
             }
         }
+    }
+
+    /**
+     * Retrieve cookies raw
+     *
+     * @return array
+     */
+    public function getCookiesOriginal()
+    {
+        return $this->cookies_original;
     }
 }
