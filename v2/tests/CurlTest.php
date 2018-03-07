@@ -40,7 +40,7 @@ class CurlTest extends TestCase
             'cache'         => true,   // Caching now enabled by default; stores clearance tokens in Cache folder
             'max_attempts'  => 5       // Max attempts to try and get CF clearance
         ));
- 
+        
         $ch = curl_init($this->url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
