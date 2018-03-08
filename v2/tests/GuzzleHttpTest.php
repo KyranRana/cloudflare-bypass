@@ -25,6 +25,7 @@ class GuzzleHttpTest extends TestCase
     {
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,  // Caching now enabled by default; stores clearance tokens in Cache folder
+            'cache_path'    => __DIR__."/../var/cache",
             'max_attempts'  => 5      // Max attempts to try and get CF clearance
         ));
 
@@ -52,6 +53,7 @@ class GuzzleHttpTest extends TestCase
     {
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,  // Caching now enabled by default; stores clearance tokens in Cache folder
+            'cache_path'    => __DIR__."/../var/cache",
             'max_attempts'  => 5      // Max attempts to try and get CF clearance
         ));
 

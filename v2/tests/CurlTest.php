@@ -38,6 +38,7 @@ class CurlTest extends TestCase
     {
         $curl_cf_wrapper = new CFCurl(array(
             'cache'         => true,   // Caching now enabled by default; stores clearance tokens in Cache folder
+            'cache_path'    => __DIR__."/../var/cache",
             'max_attempts'  => 5       // Max attempts to try and get CF clearance
         ));
         
