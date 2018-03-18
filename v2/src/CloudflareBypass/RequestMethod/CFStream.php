@@ -18,7 +18,7 @@ class CFStream extends \CloudflareBypass\CFCore
      * @throws \ErrorException if $context if not valid context
      * @return resource $context
      */
-    public function create($url, $context, $stream = null, $root_scope = true, $attempt = 1)
+    public function create($url, $context, $stream = null, $root_scope = true, $retry = 1)
     {
         if ($root_scope) {
             // Extract array if context is a resource.
@@ -78,22 +78,24 @@ class CFStream extends \CloudflareBypass\CFCore
         /*
          * 3. Solve challenge and request clearance link
          */
-        $stream_copy->setURL($this->getClearanceLink($response, $url));
-        $stream_copy->setHttpContextOption('follow_location', 1);
-
-        // GET clearance link.
-        $stream_copy->setHttpContextOption('method', 'GET');
-        $stream_copy->fileGetContents();
-
-        /*
-         * 4. Extract "cf_clearance" cookie
-         */
         if (!($cfclearance_cookie = $stream_copy->getCookie('cf_clearance'))) {
-            if ($retry > $this->max_retries) {
-                throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");   
+            $stream_copy->setURL($this->getClearanceLink($response, $url));
+            $stream_copy->setHttpContextOption('follow_location', 1);
+
+            // GET clearance link.
+            $stream_copy->setHttpContextOption('method', 'GET');
+            $stream_copy->fileGetContents();
+
+            /*
+             * 4. Extract "cf_clearance" cookie
+             */
+            if (!($cfclearance_cookie = $stream_copy->getCookie('cf_clearance'))) {
+                if ($retry > $this->max_retries) {
+                    throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");
+                }
+
+                $cfclearance_cookie = $this->create($url, false, $stream_copy, false, $retry+1);
             }
-            
-            $cfclearance_cookie = $this->create($url, false, $stream_copy, false, $retry+1);
         }
 
         if (!$root_scope) {
