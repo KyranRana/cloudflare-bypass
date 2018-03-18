@@ -76,11 +76,16 @@ class CFBypass
         
         $params = array();
         list($params['jschl_vc'], $params['pass']) = $matches[1];
-        
+
+        // Extract CF script tag portion from content.
+        $cf_script_start_pos    = strpos($content, 's,t,o,p,b,r,e,a,k,i,n,g,f,');
+        $cf_script_end_pos      = strpos($content, '</script>', $cf_script_start_pos);
+        $cf_script              = substr($content, $cf_script_start_pos, $cf_script_end_pos-$cf_script_start_pos);
+
         /*
          * 3. Extract JavaScript challenge logic
          */
-        preg_match_all('/:[!\[\]+()]+|[-*+\/]?=[!\[\]+()]+/', $content, $matches);
+        preg_match_all('/:[!\[\]+()]+|[-*+\/]?=[!\[\]+()]+/', $cf_script, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0])) {
             throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
