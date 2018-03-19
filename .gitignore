@@ -29,4 +29,4 @@ Temporary Items
 # Composer
 /v2/vendor/
 /v2/composer.lock
-/v2/src/CloudflareBypass/Cache/
+/v2/var

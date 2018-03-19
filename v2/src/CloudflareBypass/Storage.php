@@ -3,19 +3,35 @@ namespace CloudflareBypass;
 
 class Storage
 {
+
+    /**
+     * Path storage
+     *
+     * @var string
+     */
+    protected $path;
+
     /**
      * Creates Cache directory if it does NOT exist
      *
      * @access public
      * @throws \ErrorException if cache directory CAN NOT be created
      */
-    public function __construct()
+    public function __construct($path)
     {
-        // Create Cache directory if it does not exist.
-        $dir = __DIR__ . '/Cache';
-        
-        if (!is_dir($dir)) {
-            if (!mkdir($dir, 0777)) {
+        $this->path = $path;
+        $this->createBaseFolder();
+    }
+
+    /**
+     * Create base folder path
+     *
+     * @return void
+     */
+    public function createBaseFolder()
+    {
+        if (!is_dir($this->path)) {
+            if (!mkdir($this->path, 0755, true)) {
                 throw new \ErrorException('Unable to create Cache directory!');
             }
         }
@@ -36,17 +52,16 @@ class Storage
         }
 
         // Construct cache file endpoint.
-        $dir  =  __DIR__ . '/Cache/';
         $file =  md5($site_host);
 
-        if (!file_exists($dir . $file)) {
+        if (!file_exists($this->path . $file)) {
             if (preg_match('/^www./', $site_host)) {
                 $file = md5(substr($site_host, 4));
             }
         }
 
-        if (file_exists($dir . $file)) {
-            return json_decode(file_get_contents($dir . $file), true);
+        if (file_exists($this->path . $file)) {
+            return json_decode(file_get_contents($this->path . $file), true);
         }
 
         return false;
@@ -81,7 +96,7 @@ class Storage
         }
 
         // Construct cache file endpoint.
-        $filename = __DIR__ . '/Cache/' . md5($site_host);
+        $filename = $this->path . "/" . md5($site_host);
 
         // Perform data retention duties.
         $this->retention();
@@ -101,9 +116,7 @@ class Storage
      */
     private function retention()
     {
-        $dir = __DIR__ . '/Cache/';
-
-        if ($handle = opendir($dir)) {
+        if ($handle = opendir($this->path)) {
             while (false !== ($file = readdir($handle))) {
                 // Skip special directories.
                 if ('.' === $file || '..' === $file || strpos($file, '.') === 0) {
@@ -111,8 +124,8 @@ class Storage
                 }
         
                 // Delete file if last modified over 24 hours ago.
-                if (time()-filemtime($dir . $file) > 86400) {
-                    unlink($dir . $file);
+                if (time()-filemtime($this->path . "/" . $file) > 86400) {
+                    unlink($this->path . "/". $file);
                 }
             }
         }
