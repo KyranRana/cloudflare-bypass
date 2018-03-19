@@ -22,9 +22,9 @@ class CacheTest extends TestCase
      *
      * @return void
      */
-    public function testWithDirectory()
+    public function testWithCachePath()
     {
-        foreach(glob(__DIR__."/../var/cache") as $file) {
+        foreach(glob(__DIR__."/../var/cache/*") as $file) {
             is_file($file) && unlink($file); 
         }
 
@@ -41,7 +41,7 @@ class CacheTest extends TestCase
         $response = $curl_cf_wrapper->exec($ch);
 
  
-        $this->assertEquals(true, count(scandir(__DIR__."/../var/cache")) > 0);
+        $this->assertEquals(true, count(scandir(__DIR__."/../var/cache")) > 2);
         curl_close($ch);
     }
 
@@ -51,9 +51,9 @@ class CacheTest extends TestCase
      *
      * @return void
      */
-    public function testWithoutAPath()
+    public function testWithoutCachePath()
     {
-        foreach(glob(sys_get_temp_dir()."/cf-bypass") as $file) {
+        foreach(glob(sys_get_temp_dir()."/cf-bypass/*") as $file) {
             is_file($file) && unlink($file); 
         }
 
@@ -69,7 +69,33 @@ class CacheTest extends TestCase
         $response = $curl_cf_wrapper->exec($ch);
 
  
-        $this->assertEquals(true, count(scandir(sys_get_temp_dir()."/cf-bypass")) > 0);
+        $this->assertEquals(true, count(scandir(sys_get_temp_dir()."/cf-bypass")) > 2);
+        curl_close($ch);
+    }
+
+    /**
+     * Test no cache 
+     *
+     * @return void
+     */
+    public function testNoCache()
+    {
+        foreach(glob(sys_get_temp_dir()."/cf-bypass/*") as $file) {
+            is_file($file) && unlink($file); 
+        }
+
+        $curl_cf_wrapper = new CFCurl(array(
+            'cache' => false
+        ));
+        
+        $ch = curl_init($this->url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+ 
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
+        $response = $curl_cf_wrapper->exec($ch);
+
+        $this->assertEquals(true, count(scandir(sys_get_temp_dir()."/cf-bypass")) <= 2);
         curl_close($ch);
     }
 }
