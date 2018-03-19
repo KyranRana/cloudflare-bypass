@@ -31,7 +31,6 @@ class CacheTest extends TestCase
         $curl_cf_wrapper = new CFCurl(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'max_attempts'  => 5
         ));
         
         $ch = curl_init($this->url);
@@ -60,7 +59,6 @@ class CacheTest extends TestCase
 
         $curl_cf_wrapper = new CFCurl(array(
             'cache'         => true,
-            'max_attempts'  => 5
         ));
         
         $ch = curl_init($this->url);
