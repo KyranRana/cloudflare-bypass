@@ -13,7 +13,7 @@ class CFCore extends CFBypass
      * Use caching mechanism.
      * @var bool
      */
-    protected $cache = true;
+    protected $cache = false;
 
     /**
      * Configuration properties:
@@ -30,10 +30,8 @@ class CFCore extends CFBypass
     public function __construct($config = array())
     {
         // Set $this->cache
-        if (!isset($config['cache']) || isset($config['cache']) && $config['cache']) {
+        if (isset($config['cache']) && $config['cache']) {
             $this->cache = new Storage();
-        } else {
-            $this->cache = false;
         }
 
         // Set $this->max_retries
