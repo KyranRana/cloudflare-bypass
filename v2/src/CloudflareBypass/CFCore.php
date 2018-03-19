@@ -33,7 +33,7 @@ class CFCore extends CFBypass
         if (isset($config['cache']) && $config['cache']) {
 
             if (!isset($config['cache_path'])) {
-                throw new Exceptions\CFCoreConfigMissingCachePathException();
+                $config['cache_path'] = sys_get_temp_dir()."/cf-bypass";
             }
 
             $this->cache = new Storage($config['cache_path']);
