@@ -78,8 +78,6 @@ class GuzzleHttpTest extends TestCase
                 // Bypass each site using CFStream wrapper.
                 $stream     = $stream_cf_wrapper->create($url, $opts);
 
-                print_r($stream->getCookiesOriginal());
-
                 $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $components['host']);
 
                 $response = $client->request('GET', $url, [
