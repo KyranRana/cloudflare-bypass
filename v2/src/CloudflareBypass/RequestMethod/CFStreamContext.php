@@ -21,8 +21,8 @@ class CFStreamContext extends \CloudflareBypass\CFCore
     public function create($url, $context, $stream = null, $root_scope = true, $retry = 1)
     {
         $stream_cf_wrapper = new CFStream(array(
-            'cache'         => true,
-            'max_attempts'  => 5
+            'cache'         => $this->cache,
+            'max_retries'   => $this->max_retries
         ));
 
         $stream = $stream_cf_wrapper->create($url, $context, $stream, $root_scope, $retry);
