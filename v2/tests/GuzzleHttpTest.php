@@ -71,11 +71,11 @@ class GuzzleHttpTest extends TestCase
 
         foreach ($this->urls as $url) {
             // Parse url into components.
-            $components = parse_url($url);
+            $url_components = parse_url($url);
 
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->create($url, $opts);
-            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $components['host']);
+            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
 
             $response = $client->request('GET', $url, [
                 'headers' => [
@@ -86,7 +86,7 @@ class GuzzleHttpTest extends TestCase
             ]);
 
             // Get cache file (path included).
-            $cache_file = __DIR__ . '/../src/CloudflareBypass/Cache/' . md5($components['host']);
+            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
             $this->assertEquals(200, $response->getStatusCode());
             $this->assertEquals(true, file_exists($cache_file));

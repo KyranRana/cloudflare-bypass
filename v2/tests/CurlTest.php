@@ -44,11 +44,14 @@ class CurlTest extends TestCase
     {
         // Initialize CFCurl wrapper.
         $curl_cf_wrapper = new CFCurl(array(
-            'cache'         => true
+            'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
         ));
 
         foreach ($this->urls as $url) {
+            // Parse url into components.
+            $url_components = parse_url($url);
+
             // Bypass each site using CFCurl wrapper.
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -58,11 +61,9 @@ class CurlTest extends TestCase
 
             $response = $curl_cf_wrapper->exec($ch);
 
-            // Parse url into components.
-            $url_components = parse_url($url);
 
             // Get cache file (path included).
-            $cache_file = __DIR__ . '/../src/CloudflareBypass/Cache/' . md5($url_components['host']);
+            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
             $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
             $this->assertEquals(true, file_exists($cache_file));
