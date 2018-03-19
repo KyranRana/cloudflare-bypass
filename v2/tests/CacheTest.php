@@ -69,7 +69,6 @@ class CacheTest extends TestCase
 
         $cache_file = sys_get_temp_dir() . "/cf-bypass/" . md5($url_components['host']);
         file_exists($cache_file) && unlink($cache_file);
-
         
         $ch = $this->makeRequest(new CFCurl(array(
             'cache'         => true,
