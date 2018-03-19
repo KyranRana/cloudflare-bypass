@@ -2,9 +2,6 @@
 
 use PHPUnit\Framework\TestCase;
 
-use CloudflareBypass\CFCore;
-use GuzzleHttp\Client;
-use GuzzleHttp\Cookie\CookieJar;
 use CloudflareBypass\RequestMethod\CFCurl;
 
 class CacheTest extends TestCase
@@ -98,7 +95,6 @@ class CacheTest extends TestCase
 
         $cache_file = sys_get_temp_dir() . "/cf-bypass/" . md5($url_components['host']);
         file_exists($cache_file) && unlink($cache_file);
-        
 
         $ch = $this->makeRequest(new CFCurl(array(
             'cache' => false
