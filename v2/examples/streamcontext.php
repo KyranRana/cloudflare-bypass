@@ -5,7 +5,7 @@ use CloudflareBypass\RequestMethod\CFStreamContext;
 
 $stream_cf_wrapper = new CFStreamContext(array(
     'cache'         => true,  // Caching now enabled by default; stores clearance tokens in Cache folder
-    'max_attempts'  => 5      // Max attempts to try and get CF clearance
+    'max_retries'   => 5      // Max attempts to try and get CF clearance
 ));
 
 // Get Example: 1
