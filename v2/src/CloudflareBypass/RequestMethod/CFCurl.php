@@ -22,7 +22,7 @@ class CFCurl extends \CloudflareBypass\CFCore
             $ch = new Curl($ch);
             
             // Check if clearance tokens exists in a cache file. 
-            if (isset($this->cache) && $this->cache) {
+            if ($this->cache !== null) {
                 $info = $ch->getinfo();
                 $components = parse_url($info['url']);
 
@@ -107,7 +107,7 @@ class CFCurl extends \CloudflareBypass\CFCore
             return $cfclearance_cookie;
         }
 
-        if (isset($this->cache) && $this->cache) {
+        if ($this->cache !== null) {
             $cookies = array();
             $components = parse_url($uam_response_info['url']);
 

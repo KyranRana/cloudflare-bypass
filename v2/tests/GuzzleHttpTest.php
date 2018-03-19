@@ -69,27 +69,33 @@ class GuzzleHttpTest extends TestCase
         $client = new Client();
 
         foreach ($this->urls as $url) {
-            // Parse url into components.
-            $components = parse_url($url);
 
-            // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->create($url, $opts);
-            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $components['host']);
+            for ($i = 0; $i < 2; $i++) {
+                
+                // Parse url into components.
+                $components = parse_url($url);
 
-            $response = $client->request('GET', $url, [
-                'headers' => [
-                    'User-Agent' => "$agent",
-                ],
-                'cookies' => $cookie_jar,
-                // 'debug' => true
-            ]);
+                // Bypass each site using CFStream wrapper.
+                $stream     = $stream_cf_wrapper->create($url, $opts);
 
-            // Get cache file (path included).
-            $cache_file = __DIR__ . '/../src/CloudflareBypass/Cache/' . md5($components['host']);
+                $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $components['host']);
 
-            $this->assertEquals(200, $response->getStatusCode());
-            $this->assertEquals(true, file_exists($cache_file));
-            $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+                $response = $client->request('GET', $url, [
+                    'headers' => [
+                        'User-Agent' => "$agent",
+                    ],
+                    'cookies' => $cookie_jar,
+                    // 'debug' => true
+                ]);
+
+                // Get cache file (path included).
+                $cache_file = __DIR__ . '/../src/CloudflareBypass/Cache/' . md5($components['host']);
+
+                $this->assertEquals(200, $response->getStatusCode());
+                $this->assertEquals(true, file_exists($cache_file));
+                $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+
+            }
 
             // Remove the file from cache.
             unlink($cache_file);
