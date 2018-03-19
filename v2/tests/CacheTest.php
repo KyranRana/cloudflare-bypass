@@ -45,8 +45,9 @@ class CacheTest extends TestCase
         $this->assertEquals(true, file_exists($cache_file));
         $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
 
-        curl_close($ch);
         unlink($cache_file);
+        
+        curl_close($ch);
     }
 
 
@@ -77,9 +78,9 @@ class CacheTest extends TestCase
         $this->assertEquals(true, file_exists($cache_file));
         $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
 
-        curl_close($ch);
-
         unlink($cache_file);
+        
+        curl_close($ch);
     }
 
     /**
