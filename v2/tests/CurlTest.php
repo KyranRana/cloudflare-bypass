@@ -48,29 +48,33 @@ class CurlTest extends TestCase
         ));
 
         foreach ($this->urls as $url) {
-            // Bypass each site using CFCurl wrapper.
-            $ch = curl_init($url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
+            for ($i = 0; $i < 2; $i++) {
+                // Bypass each site using CFCurl wrapper.
+                $ch = curl_init($url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
-            $response = $curl_cf_wrapper->exec($ch);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
 
-            // Parse url into components.
-            $url_components = parse_url($url);
+                $response = $curl_cf_wrapper->exec($ch);
 
-            // Get cache file (path included).
-            $cache_file = __DIR__ . '/../src/CloudflareBypass/Cache/' . md5($url_components['host']);
+                // Parse url into components.
+                $url_components = parse_url($url);
 
-            $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
-            $this->assertEquals(true, file_exists($cache_file));
-            $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+                // Get cache file (path included).
+                $cache_file = __DIR__ . '/../src/CloudflareBypass/Cache/' . md5($url_components['host']);
 
+                $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
+                $this->assertEquals(true, file_exists($cache_file));
+                $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+
+
+                curl_close($ch);
+            }
+            
             // Remove the file from cache.
             unlink($cache_file);
-
-            curl_close($ch);
         }
     }
 }
