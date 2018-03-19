@@ -18,6 +18,23 @@ class CacheTest extends TestCase
     protected $url = "https://coinkite.com";
 
     /**
+     * Make a new request
+     *
+     * @param CFCurl $cf
+     */
+    public function makeRequest(CFCurl $cf)
+    {
+        $ch = curl_init($this->url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
+
+        $cf->exec($ch);
+
+        return $ch;
+    }
+
+    /**
      * Test with a cache_path
      *
      * @return void
@@ -29,17 +46,10 @@ class CacheTest extends TestCase
         $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
         file_exists($cache_file) && unlink($cache_file);
 
-        $curl_cf_wrapper = new CFCurl(array(
+        $ch = $this->makeRequest(new CFCurl(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-        ));
-        
-        $ch = curl_init($this->url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
-
-        $response = $curl_cf_wrapper->exec($ch);
+        )));
 
         $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
         $this->assertEquals(true, file_exists($cache_file));
@@ -63,16 +73,10 @@ class CacheTest extends TestCase
         $cache_file = sys_get_temp_dir() . "/cf-bypass/" . md5($url_components['host']);
         file_exists($cache_file) && unlink($cache_file);
 
-        $curl_cf_wrapper = new CFCurl(array(
-            'cache'         => true,
-        ));
         
-        $ch = curl_init($this->url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
-
-        $response = $curl_cf_wrapper->exec($ch);
+        $ch = $this->makeRequest(new CFCurl(array(
+            'cache'         => true,
+        )));
 
         $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
         $this->assertEquals(true, file_exists($cache_file));
@@ -94,17 +98,11 @@ class CacheTest extends TestCase
 
         $cache_file = sys_get_temp_dir() . "/cf-bypass/" . md5($url_components['host']);
         file_exists($cache_file) && unlink($cache_file);
+        
 
-        $curl_cf_wrapper = new CFCurl(array(
+        $ch = $this->makeRequest(new CFCurl(array(
             'cache' => false
-        ));
-        
-        $ch = curl_init($this->url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
-        
-        $response = $curl_cf_wrapper->exec($ch);
+        )));
 
         $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
         $this->assertEquals(false, file_exists($cache_file));
