@@ -54,8 +54,8 @@ class GuzzleHttpTest extends TestCase
     {
         // Initialize CFStream.
         $stream_cf_wrapper = new CFStream(array(
-            'cache_path'    => __DIR__."/../var/cache",
             'cache'         => true,
+            'cache_path'    => __DIR__."/../var/cache"
         ));
 
         $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
@@ -73,6 +73,10 @@ class GuzzleHttpTest extends TestCase
             // Parse url into components.
             $url_components = parse_url($url);
 
+            // Get cache file (path included).
+            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
+            file_exists($cache_file) && unlink($cache_file);
+            
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->create($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
@@ -84,9 +88,6 @@ class GuzzleHttpTest extends TestCase
                 'cookies' => $cookie_jar,
                 // 'debug' => true
             ]);
-
-            // Get cache file (path included).
-            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
             $this->assertEquals(200, $response->getStatusCode());
             $this->assertEquals(true, file_exists($cache_file));
