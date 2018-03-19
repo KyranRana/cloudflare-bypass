@@ -18,8 +18,15 @@ class CFStreamContext extends \CloudflareBypass\CFCore
      * @throws \ErrorException if $context if not valid context
      * @return resource $context
      */
-    public function create($url, $context, $stream = null, $root_scope = true, $attempt = 1)
+    public function create($url, $context, $stream = null, $root_scope = true, $retry = 1)
     {
-        return new CFStream($url, $context, $stream, $root_scope, $attempt)->getContext();
+        $stream_cf_wrapper = new CFStream(array(
+            'cache'         => $this->cache,
+            'max_retries'   => $this->max_retries
+        ));
+
+        $stream = $stream_cf_wrapper->create($url, $context, $stream, $root_scope, $retry);
+
+        return $stream->getContext();
     }
 }

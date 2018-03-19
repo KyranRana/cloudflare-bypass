@@ -37,6 +37,8 @@ class CFCore extends CFBypass
             }
 
             $this->cache = new Storage($config['cache_path']);
+        } else {
+            $this->cache = false;
         }
 
         // Set $this->max_retries
