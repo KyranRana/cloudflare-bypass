@@ -133,7 +133,7 @@ class StreamContext
         return $this->request_headers;
     }
 
-   /**
+    /**
      * Get response headers set for current request.
      *
      * @access public
@@ -171,30 +171,42 @@ class StreamContext
     {
         $this->updateContext();
 
-        // Try and get contents using file_get_contents.
-        $content = @file_get_contents($this->url, false, $this->stream_context);
+        // cURL response header collection.
+        $curl_http_response_header = [];
 
-        if (!$content) {
-            $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
-            $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
+        $follow_location = isset($this->context['http']['follow_location']) ? $this->context['http']['follow_location'] : 1;
+        $method = isset($this->context['http']['method']) ? $this->context['http']['method'] : 'GET';
 
-            // Unfortunately file_get_contents doesn't return contents of a 503 page.
-            // Please advise if there is a better way to do this.
-            $ch = curl_init($this->url);
+        // Unfortunately file_get_contents doesn't return contents of a 503 page.
+        // Please advise if there is a better way to do this.
+        $ch = curl_init($this->url);
 
-            // Set options to match context.
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getCurlHttpHeaders());
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        // Set options to match context.
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getCurlHttpHeaders());
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION, 
+            function    ($ch, $header) 
+            use         (&$curl_http_response_header) {
+            
+            // Trim response header.
+            $trimmed_header = str_replace("\r\n", "", $header);
+            
+            // If not empty, add response header to header collection.
+            if (!empty($trimmed_header)) { 
+                $curl_http_response_header[] = $trimmed_header;
+            }
+            
+            return strlen($header);
+        });
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
-            // Get request body.
-            $content = curl_exec($ch);
-            curl_close($ch);
-        }
+        // Get request body.
+        $content = curl_exec($ch);
+        curl_close($ch);
 
         // Get response headers.
-        if ($path = $this->updateResponseHeaders($http_response_header)) {
+        if ($path = $this->updateResponseHeaders($curl_http_response_header)) {
             // Follow location...
             if (strpos($path, '/') === 0) {
                 $parsed_url = parse_url($this->url);
@@ -292,7 +304,8 @@ class StreamContext
      * @param string $val Cookie value
      */
     public function setCookie($name, $val)
-    {
+    {   
+        // Extract value from cookie string.
         $pos = strpos($val, '=');
   
         if ($pos !== false) {

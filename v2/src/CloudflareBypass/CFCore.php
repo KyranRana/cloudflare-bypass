@@ -32,6 +32,8 @@ class CFCore extends CFBypass
         // Set $this->cache
         if (isset($config['cache']) && $config['cache']) {
             $this->cache = new Storage();
+        } else {
+            $this->cache = false;
         }
 
         // Set $this->max_retries
