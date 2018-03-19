@@ -12,8 +12,6 @@ class CurlTest extends TestCase
      * @var string
      */
     protected $urls = [
-        "http://gnula.nu/",
-        "https://animeflv.net/",
         "https://thebot.net/",
         "https://coinkite.com/",
         "http://dll.anime47.com/imgur/"
@@ -46,8 +44,7 @@ class CurlTest extends TestCase
     {
         // Initialize CFCurl wrapper.
         $curl_cf_wrapper = new CFCurl(array(
-            'cache'         => true,
-            'max_attempts'  => 5
+            'cache'         => true
         ));
 
         foreach ($this->urls as $url) {
