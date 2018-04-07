@@ -85,7 +85,7 @@ class CFBypass
         /*
          * 3. Extract JavaScript challenge logic
          */
-        preg_match_all('/:[!\[\]+()]+|[-*+\/]?=[!\[\]+()]+/', $cf_script, $matches);
+        preg_match_all('/:[\/!\[\]+()]+|[-*+\/]?=[\/!\[\]+()]+/', $cf_script, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0])) {
             throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
@@ -117,6 +117,9 @@ class CFBypass
              * 5. Eval PHP and get solution
              */
             eval($php_code);
+
+            // toFixed(10).
+            $params['jschl_answer'] = round($params['jschl_answer'], 10);
 
             // Split url into components.
             $uri = parse_url($url);
