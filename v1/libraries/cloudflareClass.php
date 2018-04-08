@@ -262,6 +262,9 @@ class cloudflare {
 		$script  = preg_replace("/'[^']+'/", "", $script);
 		// Fix
 		$script  = str_replace('f.action+=location.hash;', '', $script);
+		// Fixed issue for the error "Call to undefined function toFixed()"
+		$script  = str_replace('.toFixed(10)' , '', $script);
+		$script  = preg_replace("/(answer)=.(\w+).(\w+)/i", '$1=$$2_$3', $script);
 		// evaluate PHP script
 		eval($script);
 		// if cloudflare answer has been found, store it 
