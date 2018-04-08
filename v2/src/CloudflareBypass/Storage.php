@@ -20,6 +20,12 @@ class Storage
     public function __construct($path)
     {
         $this->path = $path;
+
+        // Suffix path with forward-slash if not done already.
+        if (substr($this->path, -1) !== "/") {
+            $this->path .= "/";
+        }
+
         $this->createBaseFolder();
     }
 
@@ -52,7 +58,7 @@ class Storage
         }
 
         // Construct cache file endpoint.
-        $file =  md5($site_host);
+        $file = md5($site_host);
 
         if (!file_exists($this->path . $file)) {
             if (preg_match('/^www./', $site_host)) {
@@ -96,7 +102,7 @@ class Storage
         }
 
         // Construct cache file endpoint.
-        $filename = $this->path . "/" . md5($site_host);
+        $filename = $this->path . md5($site_host);
 
         // Perform data retention duties.
         $this->retention();
