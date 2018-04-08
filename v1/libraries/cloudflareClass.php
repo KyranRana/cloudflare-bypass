@@ -262,6 +262,12 @@ class cloudflare {
 		$script  = preg_replace("/'[^']+'/", "", $script);
 		// Fix
 		$script  = str_replace('f.action+=location.hash;', '', $script);
+		// Fixed issue by dreamdeveloper for the error "Call to undefined function toFixed()"
+		$script  = str_replace('.toFixed(10)' , '', $script);
+		// Fixed issue by dreamdeveloper for the error "answer= ."
+		//$script  = preg_replace("/(answer)=.(\w+).(\w+)/i", '$1=$$2_$3', $script);
+		// Fixed issue by ReModWrite for the error "function toFixed(10) and answer"
+		$script  = preg_replace("/(answer)=.(\w+).(\w+)/i", '$1=round($$2_$3,10)', $script);
 		// evaluate PHP script
 		eval($script);
 		// if cloudflare answer has been found, store it 
