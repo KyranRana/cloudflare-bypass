@@ -17,7 +17,8 @@ class GuzzleHttpTest extends TestCase
     protected $urls = [
         "https://thebot.net/",
         "https://coinkite.com/",
-        "http://dll.anime47.com/imgur/"
+        "http://dll.anime47.com/imgur/",
+        "https://predb.me/?search=test"
     ];
 
     /**

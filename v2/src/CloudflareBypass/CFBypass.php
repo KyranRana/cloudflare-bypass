@@ -123,6 +123,12 @@ class CFBypass
 
             // Split url into components.
             $uri = parse_url($url);
+            
+            $query = [];
+
+            if (isset($uri['query'])) {
+                parse_str($uri['query'], $query);
+            }
 
             // Add host length to get final answer.
             $params['jschl_answer'] += strlen($uri['host']);
@@ -133,7 +139,7 @@ class CFBypass
             return sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
                 $uri['scheme'], 
                 $uri['host'], 
-                http_build_query($params)
+                http_build_query(array_merge($params, $query))
             );
         }
         catch (Exception $ex) {
