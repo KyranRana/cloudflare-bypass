@@ -142,7 +142,7 @@ class CFBypass
                 http_build_query(array_merge($params, $query))
             );
         }
-        catch (Exception $ex) {
+        catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug
             throw new \ErrorException(sprintf('Something went wrong! Please report an issue: %s', $ex->getMessage()));
         }
