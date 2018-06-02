@@ -136,11 +136,15 @@ class CFBypass
             /*
              * 6. Generate clearance link
              */
-            return sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
+            $url = sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
                 $uri['scheme'], 
                 $uri['host'], 
                 http_build_query(array_merge($params, $query))
             );
+
+            $this->debug(sprintf("Generated clearance link %s", $url));
+
+            return $url;
         }
         catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug

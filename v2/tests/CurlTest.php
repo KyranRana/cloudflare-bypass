@@ -47,6 +47,7 @@ class CurlTest extends TestCase
         $curl_cf_wrapper = new CFCurl(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
+            'verbose'       => true
         ));
 
         foreach ($this->urls as $url) {

@@ -16,6 +16,12 @@ class CFCore extends CFBypass
     protected $cache = false;
 
     /**
+     * Verbose
+     * @var bool
+     */
+    protected $verbose = false;
+
+    /**
      * Configuration properties:
      *
      * Key                  Sets
@@ -37,6 +43,8 @@ class CFCore extends CFBypass
             $this->cache = new Storage($cache_path);
         }
 
+        $this->verbose = isset($config['verbose']) && $config['verbose'] ? true : false;
+
         // Set $this->max_retries
         if (isset($config['max_retries'])) {
             if (!is_numeric($config['max_retries'])) {
@@ -45,5 +53,17 @@ class CFCore extends CFBypass
 
             $this->max_retries = $config['max_retries'];
         }
+    }
+
+    /**
+     * Debug
+     *
+     * @param string $message
+     *
+     * @return void
+     */
+    public function debug($message)
+    {
+        print_r($message."\n");
     }
 }

@@ -56,7 +56,8 @@ class GuzzleHttpTest extends TestCase
         // Initialize CFStream.
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,
-            'cache_path'    => __DIR__."/../var/cache"
+            'cache_path'    => __DIR__."/../var/cache",
+            'verbose'       => true
         ));
 
         $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
