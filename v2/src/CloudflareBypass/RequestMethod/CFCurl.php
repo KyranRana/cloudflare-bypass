@@ -20,6 +20,7 @@ class CFCurl extends \CloudflareBypass\CFCore
     {
         if ($root_scope) {
             $ch = new Curl($ch);
+            $ch->setopt(CURLOPT_VERBOSE, $this->verbose);
             
             // Check if clearance tokens exists in a cache file. 
             if (isset($this->cache) && $this->cache) {
