@@ -53,6 +53,8 @@ class CFCore extends CFBypass
 
             $this->max_retries = $config['max_retries'];
         }
+
+        $this->debug("VERBOSE: ON");
     }
 
     /**
@@ -64,6 +66,6 @@ class CFCore extends CFBypass
      */
     public function debug($message)
     {
-        $this->verbose && print_r($message."\n");
+        $this->verbose && print_r("* ".$message."\n");
     }
 }

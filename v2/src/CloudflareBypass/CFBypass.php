@@ -77,6 +77,10 @@ class CFBypass
         $params = array();
         list($params['jschl_vc'], $params['pass']) = $matches[1];
 
+
+        $this->debug(sprintf("jschl_vc: %s", $params['jschl_vc']));
+        $this->debug(sprintf("pass: %s", $params['pass']));
+
         // Extract CF script tag portion from content.
         $cf_script_start_pos    = strpos($content, 's,t,o,p,b,r,e,a,k,i,n,g,f,');
         $cf_script_end_pos      = strpos($content, '</script>', $cf_script_start_pos);
@@ -121,6 +125,8 @@ class CFBypass
             // toFixed(10).
             $params['jschl_answer'] = round($params['jschl_answer'], 10);
 
+            $this->debug(sprintf("jschl_answer: %s", $params['jschl_answer']));
+
             // Split url into components.
             $uri = parse_url($url);
             
@@ -142,7 +148,7 @@ class CFBypass
                 http_build_query(array_merge($params, $query))
             );
 
-            $this->debug(sprintf("Generated clearance link %s", $url));
+            $this->debug(sprintf("Generated clearance link: %s", $url));
 
             return $url;
         }
