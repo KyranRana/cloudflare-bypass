@@ -28,14 +28,15 @@ before_install:
   - composer clear-cache
 
 install:
-  - if [[ "$DEPENDENCIES" = 'high' ]]; then travis_retry cd v2 && composer update $DEFAULT_COMPOSER_FLAGS; fi
-  - if [[ "$DEPENDENCIES" = 'low' ]]; then travis_retry cd v2 && composer update $DEFAULT_COMPOSER_FLAGS --prefer-lowest; fi
+  - cd v2
+  - if [[ "$DEPENDENCIES" = 'high' ]]; then travis_retry composer update $DEFAULT_COMPOSER_FLAGS; fi
+  - if [[ "$DEPENDENCIES" = 'low' ]]; then travis_retry composer update $DEFAULT_COMPOSER_FLAGS --prefer-lowest; fi
 
 before_script:
   - echo 'zend.assertions=1' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
   - echo 'assert.exception=On' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
 
 script:
-  - ./v2/vendor/bin/phpunit --coverage-text --coverage-clover=build/logs/clover.xml
-  - ./v2/vendor/bin/phpunit --configuration ./build/travis-ci-fail.xml > /dev/null; if [ $? -eq 0 ]; then echo "SHOULD FAIL"; false; else echo "fail checked"; fi;
+  - ./vendor/bin/phpunit --coverage-text --coverage-clover=build/logs/clover.xml
+  - ./vendor/bin/phpunit --configuration ./build/travis-ci-fail.xml > /dev/null; if [ $? -eq 0 ]; then echo "SHOULD FAIL"; false; else echo "fail checked"; fi;
   
