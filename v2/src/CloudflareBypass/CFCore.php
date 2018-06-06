@@ -64,6 +64,6 @@ class CFCore extends CFBypass
      */
     public function debug($message)
     {
-        print_r($message."\n");
+        $this->verbose && print_r($message."\n");
     }
 }

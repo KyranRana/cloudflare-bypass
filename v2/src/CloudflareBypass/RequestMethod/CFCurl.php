@@ -45,6 +45,7 @@ class CFCurl extends \CloudflareBypass\CFCore
 
             // Clone curl object handle.
             $ch_copy = $ch->copyHandle();
+            $ch_copy->setopt(CURLOPT_VERBOSE, $this->verbose);
 
             // Enable response header and cookie storage.
             $ch_copy->enableResponseStorage();
@@ -125,6 +126,8 @@ class CFCurl extends \CloudflareBypass\CFCore
         foreach ($ch_copy->getCookies() as $cookie => $val) {
             $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
         }
+
+        $ch->setopt(CURLOPT_VERBOSE, $this->verbose);
 
         return $ch->exec();
     }
