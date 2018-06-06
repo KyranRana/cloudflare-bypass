@@ -30,6 +30,7 @@ class CurlTest extends TestCase
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
             curl_exec($ch);
 
             $this->assertEquals(503, curl_getinfo($ch, CURLINFO_HTTP_CODE));
