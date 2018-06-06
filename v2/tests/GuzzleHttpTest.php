@@ -38,8 +38,8 @@ class GuzzleHttpTest extends TestCase
                 'headers' => [
                     'User-Agent' => "$agent",
                 ],
-                'http_errors' => false
-                // 'debug' => true
+                'http_errors' => false,
+                'debug' => true
             ]);
 
             $this->assertEquals(503, $response->getStatusCode());
@@ -88,7 +88,7 @@ class GuzzleHttpTest extends TestCase
                     'User-Agent' => "$agent",
                 ],
                 'cookies' => $cookie_jar,
-                // 'debug' => true
+                'debug' => true
             ]);
 
             $this->assertEquals(200, $response->getStatusCode());
