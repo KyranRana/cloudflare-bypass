@@ -1,6 +1,6 @@
 <?php 
- 
-use PHPUnit\Framework\TestCase;
+
+namespace CloudflareBypass\Tests;
  
 use CloudflareBypass\RequestMethod\CFCurl;
 
@@ -30,10 +30,11 @@ class CurlTest extends TestCase
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_PROXY, getenv('SERVER_PROXY'));
             curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
             curl_exec($ch);
 
-            $this->assertEquals(503, curl_getinfo($ch, CURLINFO_HTTP_CODE));
+            $this->assertEquals($url.": "."503", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
         }
     }
 
@@ -63,11 +64,12 @@ class CurlTest extends TestCase
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_PROXY, getenv('SERVER_PROXY'));
             curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
 
             $response = $curl_cf_wrapper->exec($ch);
 
-            $this->assertEquals(200, curl_getinfo($ch, CURLINFO_HTTP_CODE));
+            $this->assertEquals($url.": "."200", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
             $this->assertEquals(true, file_exists($cache_file));
             $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
 

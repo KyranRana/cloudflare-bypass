@@ -30,3 +30,5 @@ Temporary Items
 /v2/vendor/
 /v2/composer.lock
 /v2/var
+
+v2/\.env

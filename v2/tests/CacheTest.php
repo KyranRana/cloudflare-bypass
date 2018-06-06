@@ -1,6 +1,6 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+namespace CloudflareBypass\Tests;
 
 use CloudflareBypass\RequestMethod\CFCurl;
 

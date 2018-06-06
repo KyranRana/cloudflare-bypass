@@ -16,7 +16,13 @@
     },
     "require-dev": {
         "phpunit/phpunit": "~5.7",
-        "guzzlehttp/guzzle": "^6.3"
+        "guzzlehttp/guzzle": "^6.3",
+        "vlucas/phpdotenv": "^2.4"
+    },
+    "autoload-dev": {
+        "psr-4": { 
+            "CloudflareBypass\\Tests\\": "tests/" 
+        }
     },
     "autoload": {
         "psr-4": {

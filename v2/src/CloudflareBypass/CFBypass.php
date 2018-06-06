@@ -65,6 +65,8 @@ class CFBypass
          */
         sleep(4);
         
+        $this->debug(sprintf("Bypassing url: %s", $url));
+        
         /*
          * 2. Extract "jschl_vc" and "pass" params
          */
