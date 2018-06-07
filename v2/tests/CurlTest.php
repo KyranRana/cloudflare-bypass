@@ -13,9 +13,9 @@ class CurlTest extends TestCase
      */
     protected $urls = [
         "https://thebot.net/",
-        "https://coinkite.com/",
-        "http://dll.anime47.com/imgur/",
-        "https://predb.me/?search=test"
+        "http://dll.anime47.com/",
+        "https://predb.me/?search=test",
+        "http://torrentz2.eu/"
     ];
     
     /**
@@ -30,8 +30,9 @@ class CurlTest extends TestCase
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_PROXY, getenv('SERVER_PROXY'));
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
+            curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
+            curl_setopt($ch, CURLOPT_HEADER, 1);
+            curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
             curl_exec($ch);
 
             $this->assertEquals($url.": "."503", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
@@ -64,10 +65,14 @@ class CurlTest extends TestCase
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_PROXY, getenv('SERVER_PROXY'));
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36');
+            curl_setopt($ch, CURLOPT_HEADER, 1);
+            curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
+            curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
             $response = $curl_cf_wrapper->exec($ch);
+
+            
+
 
             $this->assertEquals($url.": "."200", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
             $this->assertEquals(true, file_exists($cache_file));

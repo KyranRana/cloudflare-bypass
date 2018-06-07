@@ -16,9 +16,9 @@ class GuzzleHttpTest extends TestCase
      */
     protected $urls = [
         "https://thebot.net/",
-        "https://coinkite.com/",
-        "http://dll.anime47.com/imgur/",
-        "https://predb.me/?search=test"
+        "http://dll.anime47.com/",
+        "https://predb.me/?search=test",
+        "http://torrentz2.eu/"
     ];
 
     /**
@@ -28,13 +28,13 @@ class GuzzleHttpTest extends TestCase
      */
     public function getClient()
     {
-        $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
-
         $client = new Client([
             'headers' => [
-                'User-Agent' => "$agent",
+                'User-Agent' => $this->getAgent()
             ],
-            'proxy' => getenv('PROXY_SERVER'),
+            'curl' => [
+                CURLOPT_PROXY => $this->getProxyServer()
+            ],
             'http_errors' => false,
             'debug' => true
         ]);
@@ -75,13 +75,11 @@ class GuzzleHttpTest extends TestCase
             'verbose'       => true
         ));
 
-
-        $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
-
         $opts = array(
             'http' => array(
                 'method'    => "GET",
-                'header'    => "User-Agent:$agent"
+                'header'    => "User-Agent:".$this->getAgent(),
+                'proxy' => $this->getProxyServer()
             )
         );
 
@@ -98,6 +96,7 @@ class GuzzleHttpTest extends TestCase
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->create($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
+
 
             $response = $client->request('GET', $url, [
                 'cookies' => $cookie_jar,
