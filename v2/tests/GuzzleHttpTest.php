@@ -15,10 +15,10 @@ class GuzzleHttpTest extends TestCase
      * @var string
      */
     protected $urls = [
-        "https://thebot.net/",
+        "http://thebot.net/",
         "http://dll.anime47.com/",
-        "https://predb.me/?search=test",
-        "https://torrentz2.eu/"
+        "http://predb.me/?search=test",
+        "http://torrentz2.eu/"
     ];
 
     /**

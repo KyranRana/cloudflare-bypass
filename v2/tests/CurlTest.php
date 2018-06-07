@@ -12,10 +12,10 @@ class CurlTest extends TestCase
      * @var string
      */
     protected $urls = [
-        "https://thebot.net/",
+        "http://thebot.net/",
         "http://dll.anime47.com/",
-        "https://predb.me/?search=test",
-        "https://torrentz2.eu/"
+        "http://predb.me/?search=test",
+        "http://torrentz2.eu/"
     ];
     
     /**
@@ -32,6 +32,9 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
             curl_setopt($ch, CURLOPT_HEADER, 1);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
             curl_exec($ch);
 
@@ -67,6 +70,8 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_HEADER, 1);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
             curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
@@ -102,6 +107,8 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_HEADER, 1);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
             curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
