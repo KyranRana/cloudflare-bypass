@@ -44,16 +44,17 @@ class CurlTest extends TestCase
      *
      * @return void
      */
-    public function test200()
+    public function test200WithCache()
     {
         // Initialize CFCurl wrapper.
-        $curl_cf_wrapper = new CFCurl(array(
+        $wrapper = new CFCurl(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
             'verbose'       => true
         ));
 
         foreach ($this->urls as $url) {
+
             // Parse url into components.
             $url_components = parse_url($url);
 
@@ -69,10 +70,7 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
-            $response = $curl_cf_wrapper->exec($ch);
-
-            
-
+            $response = $wrapper->exec($ch);
 
             $this->assertEquals($url.": "."200", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
             $this->assertEquals(true, file_exists($cache_file));
@@ -80,6 +78,36 @@ class CurlTest extends TestCase
 
             // Remove the file from cache.
             unlink($cache_file);
+
+            curl_close($ch);
+        }
+    }
+
+    /**
+     * Test 200 (with bypass)
+     *
+     * @return void
+     */
+    public function test200WithNoCache()
+    {
+        $wrapper = new CFCurl(array(
+            'cache'         => false,
+            'verbose'       => true
+        ));
+
+        foreach ($this->urls as $url) {
+
+            // Bypass each site using CFCurl wrapper.
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_HEADER, 1);
+            curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
+            curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
+
+            $response = $wrapper->exec($ch);
+
+            $this->assertEquals($url.": "."200", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
 
             curl_close($ch);
         }
