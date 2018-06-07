@@ -18,7 +18,7 @@ class GuzzleHttpTest extends TestCase
         "https://thebot.net/",
         "http://dll.anime47.com/",
         "https://predb.me/?search=test",
-        "http://torrentz2.eu/"
+        "https://torrentz2.eu/"
     ];
 
     /**
@@ -29,12 +29,12 @@ class GuzzleHttpTest extends TestCase
     public function getClient()
     {
         $client = new Client([
-            'headers' => [
+            'headers' => array(
                 'User-Agent' => $this->getAgent()
-            ],
-            'curl' => [
+            ),
+            'curl' => array(
                 CURLOPT_PROXY => $this->getProxyServer()
-            ],
+            ),
             'http_errors' => false,
             'debug' => true
         ]);
@@ -77,10 +77,13 @@ class GuzzleHttpTest extends TestCase
 
         $opts = array(
             'http' => array(
-                'method'    => "GET",
-                'header'    => "User-Agent:".$this->getAgent(),
-                'proxy' => $this->getProxyServer()
-            )
+                'method'         => "GET",
+                'header'         => "User-Agent:".$this->getAgent(),
+                'followlocation' => true
+            ),
+            'curl' => array(
+                CURLOPT_PROXY => $this->getProxyServer()
+            ),
         );
 
         $client = $this->getClient();

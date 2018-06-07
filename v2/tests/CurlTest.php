@@ -15,7 +15,7 @@ class CurlTest extends TestCase
         "https://thebot.net/",
         "http://dll.anime47.com/",
         "https://predb.me/?search=test",
-        "http://torrentz2.eu/"
+        "https://torrentz2.eu/"
     ];
     
     /**

@@ -200,6 +200,13 @@ class StreamContext
         });
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+
+        if (isset($this->context['curl'])) {
+            foreach ($this->context['curl'] as $opt => $value) {
+                curl_setopt($ch, $opt, $value);
+            }
+        }
 
         // Get request body.
         $content = curl_exec($ch);
