@@ -65,6 +65,8 @@ class CFBypass
          */
         sleep(4);
         
+        $this->debug(sprintf("Bypassing url: %s", $url));
+        
         /*
          * 2. Extract "jschl_vc" and "pass" params
          */
@@ -76,6 +78,10 @@ class CFBypass
         
         $params = array();
         list($params['jschl_vc'], $params['pass']) = $matches[1];
+
+
+        $this->debug(sprintf("jschl_vc: %s", $params['jschl_vc']));
+        $this->debug(sprintf("pass: %s", $params['pass']));
 
         // Extract CF script tag portion from content.
         $cf_script_start_pos    = strpos($content, 's,t,o,p,b,r,e,a,k,i,n,g,f,');
@@ -121,8 +127,16 @@ class CFBypass
             // toFixed(10).
             $params['jschl_answer'] = round($params['jschl_answer'], 10);
 
+            $this->debug(sprintf("jschl_answer: %s", $params['jschl_answer']));
+
             // Split url into components.
             $uri = parse_url($url);
+            
+            $query = [];
+
+            if (isset($uri['query'])) {
+                parse_str($uri['query'], $query);
+            }
 
             // Add host length to get final answer.
             $params['jschl_answer'] += strlen($uri['host']);
@@ -130,13 +144,17 @@ class CFBypass
             /*
              * 6. Generate clearance link
              */
-            return sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
+            $url = sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
                 $uri['scheme'], 
                 $uri['host'], 
-                http_build_query($params)
+                http_build_query(array_merge($params, $query))
             );
+
+            $this->debug(sprintf("Generated clearance link: %s", $url));
+
+            return $url;
         }
-        catch (Exception $ex) {
+        catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug
             throw new \ErrorException(sprintf('Something went wrong! Please report an issue: %s', $ex->getMessage()));
         }

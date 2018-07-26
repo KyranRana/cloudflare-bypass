@@ -20,6 +20,7 @@ class CFCurl extends \CloudflareBypass\CFCore
     {
         if ($root_scope) {
             $ch = new Curl($ch);
+            $ch->setopt(CURLOPT_VERBOSE, $this->verbose);
             
             // Check if clearance tokens exists in a cache file. 
             if (isset($this->cache) && $this->cache) {
@@ -45,6 +46,7 @@ class CFCurl extends \CloudflareBypass\CFCore
 
             // Clone curl object handle.
             $ch_copy = $ch->copyHandle();
+            $ch_copy->setopt(CURLOPT_VERBOSE, $this->verbose);
 
             // Enable response header and cookie storage.
             $ch_copy->enableResponseStorage();
@@ -107,6 +109,8 @@ class CFCurl extends \CloudflareBypass\CFCore
             return $cfclearance_cookie;
         }
 
+        $this->debug(sprintf("cfclearance_cookie: %s", $cfclearance_cookie));
+
         if (isset($this->cache) && $this->cache) {
             $cookies = array();
             $components = parse_url($uam_response_info['url']);
@@ -125,6 +129,8 @@ class CFCurl extends \CloudflareBypass\CFCore
         foreach ($ch_copy->getCookies() as $cookie => $val) {
             $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
         }
+
+        $ch->setopt(CURLOPT_VERBOSE, $this->verbose);
 
         return $ch->exec();
     }

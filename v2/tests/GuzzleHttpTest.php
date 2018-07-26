@@ -1,6 +1,6 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+namespace CloudflareBypass\Tests;
 
 use CloudflareBypass\RequestMethod\CFStream;
 use GuzzleHttp\Client;
@@ -15,10 +15,32 @@ class GuzzleHttpTest extends TestCase
      * @var string
      */
     protected $urls = [
-        "https://thebot.net/",
-        "https://coinkite.com/",
-        "http://dll.anime47.com/imgur/"
+        "http://thebot.net/",
+        "http://dll.anime47.com/",
+        "http://predb.me/?search=test",
+        "http://torrentz2.eu/"
     ];
+
+    /**
+     * Retrieve the client
+     *
+     * @return Client
+     */
+    public function getClient()
+    {
+        $client = new Client([
+            'headers' => array(
+                'User-Agent' => $this->getAgent()
+            ),
+            'curl' => array(
+                CURLOPT_PROXY => $this->getProxyServer()
+            ),
+            'http_errors' => false,
+            'debug' => true
+        ]);
+
+        return $client;
+    }
 
     /**
      * Test 503 (without bypass)
@@ -27,21 +49,15 @@ class GuzzleHttpTest extends TestCase
      */
     public function test503()
     {
-        $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
 
-        $client = new Client();
+        $client = $this->getClient();
 
         foreach ($this->urls as $url) {
             // Make sure each site is protected by CF.
             $response = $client->request('GET', $url, [
-                'headers' => [
-                    'User-Agent' => "$agent",
-                ],
-                'http_errors' => false
-                // 'debug' => true
             ]);
 
-            $this->assertEquals(503, $response->getStatusCode());
+            $this->assertEquals($url.": "."503", $url.": ".$response->getStatusCode());
         }
     }
 
@@ -55,19 +71,22 @@ class GuzzleHttpTest extends TestCase
         // Initialize CFStream.
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,
-            'cache_path'    => __DIR__."/../var/cache"
+            'cache_path'    => __DIR__."/../var/cache",
+            'verbose'       => true
         ));
-
-        $agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
 
         $opts = array(
             'http' => array(
-                'method'    => "GET",
-                'header'    => "User-Agent:$agent"
-            )
+                'method'         => "GET",
+                'header'         => "User-Agent:".$this->getAgent(),
+                'followlocation' => true
+            ),
+            'curl' => array(
+                CURLOPT_PROXY => $this->getProxyServer()
+            ),
         );
 
-        $client = new Client();
+        $client = $this->getClient();
 
         foreach ($this->urls as $url) {
             // Parse url into components.
@@ -81,15 +100,12 @@ class GuzzleHttpTest extends TestCase
             $stream     = $stream_cf_wrapper->create($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
 
+
             $response = $client->request('GET', $url, [
-                'headers' => [
-                    'User-Agent' => "$agent",
-                ],
                 'cookies' => $cookie_jar,
-                // 'debug' => true
             ]);
 
-            $this->assertEquals(200, $response->getStatusCode());
+            $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
             $this->assertEquals(true, file_exists($cache_file));
             $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
 

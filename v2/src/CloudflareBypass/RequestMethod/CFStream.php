@@ -101,6 +101,8 @@ class CFStream extends \CloudflareBypass\CFCore
         if (!$root_scope) {
             return $cfclearance_cookie;
         }
+        
+        $this->debug(sprintf("cfclearance_cookie: %s", $cfclearance_cookie));
 
         if (isset($this->cache) && $this->cache) {
             $cookies = array();
