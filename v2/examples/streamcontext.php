@@ -4,8 +4,10 @@ require __DIR__ . '/../vendor/autoload.php';
 use CloudflareBypass\RequestMethod\CFStreamContext;
 
 $stream_cf_wrapper = new CFStreamContext(array(
-    'cache'         => true,  // Caching now enabled by default; stores clearance tokens in Cache folder
-    'max_retries'   => 5      // Max attempts to try and get CF clearance
+    'max_retries'   => 5,                       // How many times to try and get clearance?
+    'cache'         => true,                    // Enable caching?
+    'cache_path'    => __DIR__ . '/cache',      // Where to cache cookies? (Default: system tmp directory)
+    'verbose'       => false                    // Enable verbose? (Good for debugging issues - doesn't effect context)
 ));
 
 // Get Example: 1
@@ -17,5 +19,6 @@ $opts = array(
     )
 );
 
-$url = "https://coinkite.com";
+$url = "https://thebot.net";
+
 echo file_get_contents($url, false, $stream_cf_wrapper->create($url, $opts)); // As easy as that!
