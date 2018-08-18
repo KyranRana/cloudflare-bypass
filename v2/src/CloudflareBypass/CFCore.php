@@ -10,6 +10,12 @@ class CFCore extends CFBypass
     protected $max_retries = 5;
 
     /**
+     * CF config
+     * @var array
+     */
+    protected $config;
+
+    /**
      * Use caching mechanism.
      * @var bool
      */
@@ -35,7 +41,6 @@ class CFCore extends CFBypass
      */
     public function __construct($config = array())
     {
-
         $cache = isset($config['cache']) ? $config['cache'] : true;
         $cache_path = isset($config['cache_path']) ? $config['cache_path'] : sys_get_temp_dir()."/cf-bypass";
 
@@ -43,7 +48,11 @@ class CFCore extends CFBypass
             $this->cache = new Storage($cache_path);
         }
 
-        $this->verbose = isset($config['verbose']) && $config['verbose'] ? true : false;
+        // Set $this->config
+        $this->config = $config;
+
+        // Set $this->verbose
+        $this->verbose = isset($config['verbose']) && $config['verbose'];
 
         // Set $this->max_retries
         if (isset($config['max_retries'])) {

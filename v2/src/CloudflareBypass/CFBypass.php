@@ -4,8 +4,8 @@ namespace CloudflareBypass;
 class CFBypass
 {
     /**
-     * Check if page is a IUAM page. Given page content and headers, will check if page is
-     * protected by CloudFlare (to my best of judgment).
+     * Given page content and headers, will check if page is protected by CloudFlare.
+     * (This method is NOT accurate and may fail in rare cases) 
      *
      * Response Headers Properties
      *

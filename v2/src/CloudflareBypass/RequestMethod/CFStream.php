@@ -26,7 +26,7 @@ class CFStream extends \CloudflareBypass\CFCore
                 $context = stream_context_get_options($context);
             }
 
-            $stream = new StreamContext($url, $context);
+            $stream = new Stream($url, $context);
 
             // Check if clearance tokens exists in a cache file.
             if (isset($this->cache) && $this->cache) {
@@ -40,9 +40,9 @@ class CFStream extends \CloudflareBypass\CFCore
                 }
             }
         }
-
+    
         // Request original page.
-        $response = $stream->fileGetContents();
+        $response = $stream->fileGetContents( $this->verbose );
         $response_info = array(
             'http_code'     => $stream->getResponseHeader('http_code')
         );
@@ -61,7 +61,7 @@ class CFStream extends \CloudflareBypass\CFCore
             }
 
             /*
-             * 2. Extract "__cfuid" cookie
+             * 2. Extract "__cfduid" cookie
              */
             if (!($cfduid_cookie = $stream->getCookie('__cfduid'))) {
                 return $stream;
@@ -78,24 +78,22 @@ class CFStream extends \CloudflareBypass\CFCore
         /*
          * 3. Solve challenge and request clearance link
          */
+        $stream_copy->setURL($this->getClearanceLink($response, $url));
+        $stream_copy->setHttpContextOption('follow_location', 1);
+
+        // GET clearance link.
+        $stream_copy->setHttpContextOption('method', 'GET');
+        $stream_copy->fileGetContents( $this->verbose );
+
+        /*
+         * 4. Extract "cf_clearance" cookie
+         */
         if (!($cfclearance_cookie = $stream_copy->getCookie('cf_clearance'))) {
-            $stream_copy->setURL($this->getClearanceLink($response, $url));
-            $stream_copy->setHttpContextOption('follow_location', 1);
-
-            // GET clearance link.
-            $stream_copy->setHttpContextOption('method', 'GET');
-            $stream_copy->fileGetContents();
-
-            /*
-             * 4. Extract "cf_clearance" cookie
-             */
-            if (!($cfclearance_cookie = $stream_copy->getCookie('cf_clearance'))) {
-                if ($retry > $this->max_retries) {
-                    throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");
-                }
-
-                $cfclearance_cookie = $this->create($url, false, $stream_copy, false, $retry+1);
+            if ($retry > $this->max_retries) {
+                throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");
             }
+
+            $cfclearance_cookie = $this->create($url, false, $stream_copy, false, $retry+1);
         }
 
         if (!$root_scope) {
@@ -117,10 +115,12 @@ class CFStream extends \CloudflareBypass\CFCore
         }
 
         /*
-         * 5. Set "__cfduid" and "cf_clearance" in original stream
+         * 5. Set "__cfduid" and "cf_clearance" in original stream (as well as session cookies)
          */
-        $stream->setCookie('__cfduid', $cfduid_cookie);
-        $stream->setCookie('cf_clearance', $cfclearance_cookie);
+        foreach ( $stream_copy->getCookies() as $cookie => $val ) {
+            $stream->setCookie( $cookie, $val );
+        }
+
         $stream->updateContext();
 
         return $stream;
