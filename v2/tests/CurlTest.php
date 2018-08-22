@@ -120,6 +120,8 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 
+            $url_components = parse_url($url);
+
             // Get cache file (path included)
             $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
