@@ -13,8 +13,8 @@ $stream_cf_wrapper = new CFStreamContext(array(
 // Get Example: 1
 $opts = array(
     'http' => array(
-        'method'=>"GET",
-        'header'=>
+        'method' => "GET",
+        'header' =>
             "User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36\r\n"
     )
 );
