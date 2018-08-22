@@ -8,17 +8,15 @@ use GuzzleHttp\Cookie\CookieJar;
 
 class GuzzleHttpTest extends TestCase
 {
-
     /**
      * Urls to test
      *
      * @var string
      */
     protected $urls = [
-        "http://thebot.net/",
+        "https://thebot.net/",
         "http://dll.anime47.com/",
-        "http://predb.me/?search=test",
-        "http://torrentz2.eu/"
+        "http://predb.me/?search=test"
     ];
 
     /**
@@ -27,17 +25,23 @@ class GuzzleHttpTest extends TestCase
      * @return Client
      */
     public function getClient()
-    {
-        $client = new Client([
+    {   
+        $opts = [
             'headers' => array(
                 'User-Agent' => $this->getAgent()
             ),
-            'curl' => array(
-                CURLOPT_PROXY => $this->getProxyServer()
-            ),
-            'http_errors' => false,
-            'debug' => true
-        ]);
+            'http_errors'   => false,
+            'debug'         => false
+        ];
+
+        // Set proxy server if one is available.
+        $proxy = $this->getProxyServer();
+        if ($proxy != 'null')
+            $opts['curl'] = array(
+                CURLOPT_PROXY => $proxy
+            );
+
+        $client = new Client($opts);
 
         return $client;
     }
@@ -49,7 +53,6 @@ class GuzzleHttpTest extends TestCase
      */
     public function test503()
     {
-
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
@@ -66,13 +69,13 @@ class GuzzleHttpTest extends TestCase
      *
      * @return void
      */
-    public function test200()
+    public function test200WithCache() 
     {
-        // Initialize CFStream.
+         // Initialize CFStream.
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => true
+            'verbose'       => false
         ));
 
         $opts = array(
@@ -80,11 +83,15 @@ class GuzzleHttpTest extends TestCase
                 'method'         => "GET",
                 'header'         => "User-Agent:".$this->getAgent(),
                 'followlocation' => true
-            ),
-            'curl' => array(
-                CURLOPT_PROXY => $this->getProxyServer()
-            ),
+            )
         );
+
+        // Set proxy server if one is available.
+        $proxy = $this->getProxyServer();
+        if ($proxy != 'null')
+            $opts['curl'] = array(
+                CURLOPT_PROXY => $proxy
+            );
 
         $client = $this->getClient();
 
@@ -92,14 +99,11 @@ class GuzzleHttpTest extends TestCase
             // Parse url into components.
             $url_components = parse_url($url);
 
-            // Get cache file (path included).
-            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
-            file_exists($cache_file) && unlink($cache_file);
-            
+            $cache_file = __DIR__ . "/../var/cache/" . md5($url_components['host']);
+
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->create($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
-
 
             $response = $client->request('GET', $url, [
                 'cookies' => $cookie_jar,
@@ -111,6 +115,55 @@ class GuzzleHttpTest extends TestCase
 
             // Remove the file from cache.
             unlink($cache_file);
+        }
+    }
+
+
+    /**
+     * Test 200 (with bypass)
+     *
+     * @return void
+     */
+    public function test200WithNoCache()
+    {
+        // Initialize CFStream.
+        $stream_cf_wrapper = new CFStream(array(
+            'cache'         => false,
+            'cache_path'    => __DIR__."/../var/cache",
+            'verbose'       => false
+        ));
+
+        $opts = array(
+            'http' => array(
+                'method'         => "GET",
+                'header'         => "User-Agent:".$this->getAgent(),
+                'followlocation' => true
+            )
+        );
+
+        // Set proxy server if one is available.
+        $proxy = $this->getProxyServer();
+        if ($proxy != 'null')
+            $opts['curl'] = array(
+                CURLOPT_PROXY => $proxy
+            );
+
+        $client = $this->getClient();
+
+        foreach ($this->urls as $url) {
+            // Parse url into components.
+            $url_components = parse_url($url);
+
+            // Bypass each site using CFStream wrapper.
+            $stream     = $stream_cf_wrapper->create($url, $opts);
+            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
+
+            $response = $client->request('GET', $url, [
+                'cookies' => $cookie_jar,
+            ]);
+
+            $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
+            $this->assertEquals(false, file_exists($cache_file));
         }
     }
 }

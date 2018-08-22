@@ -12,10 +12,9 @@ class CurlTest extends TestCase
      * @var string
      */
     protected $urls = [
-        "http://thebot.net/",
+        "https://thebot.net/",
         "http://dll.anime47.com/",
-        "http://predb.me/?search=test",
-        "http://torrentz2.eu/"
+        "http://predb.me/?search=test"
     ];
     
     /**
@@ -30,7 +29,12 @@ class CurlTest extends TestCase
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
+
+            // Set proxy server if one is available.
+            $proxy = $this->getProxyServer();
+            if ($proxy != 'null')
+                curl_setopt($ch, CURLOPT_PROXY, $proxy);
+
             curl_setopt($ch, CURLOPT_HEADER, 1);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
@@ -53,7 +57,7 @@ class CurlTest extends TestCase
         $wrapper = new CFCurl(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => true
+            'verbose'       => false
         ));
 
         foreach ($this->urls as $url) {
@@ -72,7 +76,12 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_HEADER, 1);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-            curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
+            
+            // Set a proxy server if one is available.
+            $proxy = $this->getProxyServer();
+            if ($proxy != 'null')
+                curl_setopt($ch, CURLOPT_PROXY, $proxy);
+
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
             $response = $wrapper->exec($ch);
@@ -97,7 +106,8 @@ class CurlTest extends TestCase
     {
         $wrapper = new CFCurl(array(
             'cache'         => false,
-            'verbose'       => true
+            'cache_path'    => __DIR__."/../var/cache",
+            'verbose'       => false
         ));
 
         foreach ($this->urls as $url) {
@@ -109,12 +119,21 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_HEADER, 1);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-            curl_setopt($ch, CURLOPT_PROXY, $this->getProxyServer());
+
+            // Get cache file (path included)
+            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
+
+            // Set a proxy server if one is available.
+            $proxy = $this->getProxyServer();
+            if ($proxy != 'null')
+                curl_setopt($ch, CURLOPT_PROXY, $proxy);
+
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
             $response = $wrapper->exec($ch);
 
             $this->assertEquals($url.": "."200", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
+            $this->assertEquals(false, file_exists($cache_file));
 
             curl_close($ch);
         }

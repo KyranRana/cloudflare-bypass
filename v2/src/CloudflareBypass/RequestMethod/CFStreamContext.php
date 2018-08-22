@@ -22,7 +22,7 @@ class CFStreamContext extends \CloudflareBypass\CFCore
     {
         $config = [ 
             'max_retries'   => $this->max_retries,
-            'cache'         => isset($this->config['cache']) && $this->config['cache'] || true
+            'cache'         => isset($this->config['cache']) ? $this->config['cache'] : true
         ];
 
         if (isset($this->config['cache_path'])) {
