@@ -36,7 +36,8 @@ class StreamContextTest extends TestCase
 
         // Set proxy server if one is available.
         $proxy = $this->getProxyServer();
-        if ($proxy != 'null')
+
+        if (isset($proxy))
             $opts['proxy'] = $proxy;
 
         foreach ($this->urls as $url) {
@@ -82,7 +83,8 @@ class StreamContextTest extends TestCase
 
             // Set proxy server if one is available.
             $proxy = $this->getProxyServer();
-            if ($proxy != 'null')
+
+            if (isset($proxy))
                 $opts['proxy'] = $proxy;
 
             @file_get_contents($url, false, $wrapper->create($url, $opts));
@@ -129,7 +131,8 @@ class StreamContextTest extends TestCase
 
             // Set proxy server if one is available.
             $proxy = $this->getProxyServer();
-            if ($proxy != 'null')
+            
+            if (isset($proxy))
                 $opts['proxy'] = $proxy;
 
             @file_get_contents($url, false, $wrapper->create($url, $opts));
