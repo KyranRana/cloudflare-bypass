@@ -94,7 +94,6 @@ class StreamContextTest extends TestCase
             // Get cache file (path included).
             $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
-
             $opts = $this->getOptions();
 
             @file_get_contents($url, false, $wrapper->create($url, $opts));

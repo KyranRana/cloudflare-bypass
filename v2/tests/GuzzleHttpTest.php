@@ -35,7 +35,6 @@ class GuzzleHttpTest extends TestCase
             'debug'         => false
         ];
 
-
         $client = new Client($opts);
 
         return $client;
@@ -73,16 +72,8 @@ class GuzzleHttpTest extends TestCase
             'verbose'       => false
         ));
 
-
         $opts = $this->getOptions();
-
-        // Set proxy server if one is available.
-        $proxy = $this->getProxyServer();
-        if ($proxy != 'null')
-            $opts['curl'] = array(
-                CURLOPT_PROXY => $proxy
-            );
-
+      
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
@@ -124,7 +115,6 @@ class GuzzleHttpTest extends TestCase
         ));
 
         $opts = $this->getOptions();
-
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
