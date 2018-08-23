@@ -50,7 +50,7 @@ abstract class TestCase extends BaseTestCase
                 'header'         => "User-Agent:".$this->getAgent(),
                 'followlocation' => true,
                 'request_fulluri'=> true,
-                'proxy'          => 'tcp://' . $this->getProxyServer(),
+                'proxy'          => $this->getProxyServer() ? 'tcp://' . $this->getProxyServer() : null,
             ),
             'curl' => $this->getCurlOptions(),
         );
