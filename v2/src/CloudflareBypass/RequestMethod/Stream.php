@@ -204,9 +204,7 @@ class Stream
         curl_setopt($ch, CURLOPT_VERBOSE, $verbose);
 
         if (isset($this->context['curl'])) {
-            foreach ($this->context['curl'] as $opt => $value) {
-                curl_setopt($ch, $opt, $value);
-            }
+            curl_setopt_array($ch, $this->context['curl']);
         }
 
         // Get request body.
