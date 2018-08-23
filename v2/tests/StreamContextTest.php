@@ -121,6 +121,9 @@ class StreamContextTest extends TestCase
                 )
             );
 
+            // parse url into components.
+            $url_components = parse_url($url);
+
             // Get cache file (path included).
             $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 

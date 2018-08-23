@@ -30,6 +30,10 @@ class GuzzleHttpTest extends TestCase
             'headers' => array(
                 'User-Agent' => $this->getAgent()
             ),
+            'curl' => array(
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_SSL_VERIFYPEER => false
+            ),
             'http_errors'   => false,
             'debug'         => false
         ];
@@ -83,6 +87,10 @@ class GuzzleHttpTest extends TestCase
                 'method'         => "GET",
                 'header'         => "User-Agent:".$this->getAgent(),
                 'followlocation' => true
+            ),
+            'curl' => array(
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_SSL_VERIFYPEER => false
             )
         );
 
@@ -138,6 +146,10 @@ class GuzzleHttpTest extends TestCase
                 'method'         => "GET",
                 'header'         => "User-Agent:".$this->getAgent(),
                 'followlocation' => true
+            ),
+            'curl' => array(
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_SSL_VERIFYPEER => false
             )
         );
 
@@ -161,6 +173,9 @@ class GuzzleHttpTest extends TestCase
             $response = $client->request('GET', $url, [
                 'cookies' => $cookie_jar,
             ]);
+
+            // Get cache file (path included).
+            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
             $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
             $this->assertEquals(false, file_exists($cache_file));
