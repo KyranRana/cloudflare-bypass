@@ -30,20 +30,11 @@ class GuzzleHttpTest extends TestCase
             'headers' => array(
                 'User-Agent' => $this->getAgent()
             ),
-            'curl' => array(
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_SSL_VERIFYPEER => false
-            ),
+            'curl' => $this->getCurlOptions(),
             'http_errors'   => false,
             'debug'         => false
         ];
 
-        // Set proxy server if one is available.
-        $proxy = $this->getProxyServer();
-        if ($proxy != 'null')
-            $opts['curl'] = array(
-                CURLOPT_PROXY => $proxy
-            );
 
         $client = new Client($opts);
 
@@ -82,17 +73,8 @@ class GuzzleHttpTest extends TestCase
             'verbose'       => false
         ));
 
-        $opts = array(
-            'http' => array(
-                'method'         => "GET",
-                'header'         => "User-Agent:".$this->getAgent(),
-                'followlocation' => true
-            ),
-            'curl' => array(
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_SSL_VERIFYPEER => false
-            )
-        );
+
+        $opts = $this->getOptions();
 
         // Set proxy server if one is available.
         $proxy = $this->getProxyServer();
@@ -141,24 +123,7 @@ class GuzzleHttpTest extends TestCase
             'verbose'       => false
         ));
 
-        $opts = array(
-            'http' => array(
-                'method'         => "GET",
-                'header'         => "User-Agent:".$this->getAgent(),
-                'followlocation' => true
-            ),
-            'curl' => array(
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_SSL_VERIFYPEER => false
-            )
-        );
-
-        // Set proxy server if one is available.
-        $proxy = $this->getProxyServer();
-        if ($proxy != 'null')
-            $opts['curl'] = array(
-                CURLOPT_PROXY => $proxy
-            );
+        $opts = $this->getOptions();
 
         $client = $this->getClient();
 
@@ -181,4 +146,5 @@ class GuzzleHttpTest extends TestCase
             $this->assertEquals(false, file_exists($cache_file));
         }
     }
+
 }
