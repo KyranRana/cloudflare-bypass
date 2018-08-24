@@ -33,6 +33,42 @@ abstract class TestCase extends BaseTestCase
      */
     public function getProxyServer()
     {
-    	return getenv('PROXY_SERVER');
+    	return getenv('PROXY_SERVER', null);
+    }
+
+    /**
+     * Retrieve options from Stream
+     *
+     * @return array
+     */
+    public function getOptions()
+    {
+
+        $opts = array(
+            'http' => array(
+                'method'         => "GET",
+                'header'         => "User-Agent:".$this->getAgent(),
+                'followlocation' => true,
+                'request_fulluri'=> true,
+                'proxy'          => $this->getProxyServer() ? 'tcp://' . $this->getProxyServer() : null,
+            ),
+            'curl' => $this->getCurlOptions(),
+        );
+
+        return $opts;
+    }
+
+    /** 
+     * Retrieve curl options
+     *
+     * @return array
+     */
+    public function getCurlOptions()
+    {
+        return array(
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_PROXY => $this->getProxyServer()
+        );
     }
 }

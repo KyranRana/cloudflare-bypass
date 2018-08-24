@@ -30,16 +30,10 @@ class GuzzleHttpTest extends TestCase
             'headers' => array(
                 'User-Agent' => $this->getAgent()
             ),
-            'curl' => array(
-            ), 
+            'curl' => $this->getCurlOptions(),
             'http_errors'   => false,
             'debug'         => false
         ];
-
-        $proxy = $this->getProxyServer();
-
-        if (isset($proxy))
-            $opts['curl'][CURLOPT_PROXY] = $proxy;
 
         $client = new Client($opts);
 
@@ -78,20 +72,8 @@ class GuzzleHttpTest extends TestCase
             'verbose'       => false
         ));
 
-        $opts = array(
-            'http' => array(
-                'method'         => "GET",
-                'header'         => "User-Agent:".$this->getAgent(),
-                'followlocation' => true
-            ),
-            'curl' => array()
-        );
-
-        $proxy = $this->getProxyServer();
-
-        if (isset($proxy))
-            $opts['curl'][CURLOPT_PROXY] = $proxy;
-
+        $opts = $this->getOptions();
+      
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
@@ -132,21 +114,7 @@ class GuzzleHttpTest extends TestCase
             'verbose'       => false
         ));
 
-        $opts = array(
-            'http' => array(
-                'method'         => "GET",
-                'header'         => "User-Agent:".$this->getAgent(),
-                'followlocation' => true
-            ),
-            'curl' => array(
-            )
-        );
-
-        $proxy = $this->getProxyServer();
-
-        if (isset($proxy))
-            $opts['curl'][CURLOPT_PROXY] = $proxy;
-
+        $opts = $this->getOptions();
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
@@ -168,4 +136,5 @@ class GuzzleHttpTest extends TestCase
             $this->assertEquals(false, file_exists($cache_file));
         }
     }
+
 }

@@ -24,21 +24,6 @@ class StreamContextTest extends TestCase
      */
     public function test503()
     {
-        // Make sure each site is protected by CF.
-        $opts = array(
-            'http' => array(
-                'method'            => "GET",
-                'request_fulluri'   => true,
-                'header'            =>
-                    "User-Agent: " . $this->getAgent() . "\r\n"
-            )
-        );
-
-        // Set proxy server if one is available.
-        $proxy = $this->getProxyServer();
-
-        if (isset($proxy))
-            $opts['proxy'] = $proxy;
 
         foreach ($this->urls as $url) {
 
@@ -72,24 +57,14 @@ class StreamContextTest extends TestCase
             file_exists($cache_file) && unlink($cache_file);
 
             // Bypass each site using CFStreamContext wrapper.
-            $opts = array(
-                'http' => array(
-                    'method'            => "GET",
-                    'request_fulluri'   => true,
-                    'header'            =>
-                        "User-Agent:" . $this->getAgent() . "\r\n"
-                )
-            );
-
-            // Set proxy server if one is available.
-            $proxy = $this->getProxyServer();
-
-            if (isset($proxy))
-                $opts['proxy'] = $proxy;
+            $opts = $this->getOptions();
 
             @file_get_contents($url, false, $wrapper->create($url, $opts));
 
-            $this->assertEquals($url.": HTTP/1.1 200 OK", $url.": ". $http_response_header[0]);
+            $status_code = $this->getStatusCodeFromResponseHeader($http_response_header[0]);
+
+
+            $this->assertEquals($url.": 200", $url.": ". $status_code);
             $this->assertEquals(true, file_exists($cache_file));
             $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
 
@@ -113,32 +88,33 @@ class StreamContextTest extends TestCase
 
         foreach ($this->urls as $url) {
 
-            // Bypass each site using CFStreamContext wrapper.
-            $opts = array(
-                'http' => array(
-                    'method'            => "GET",
-                    'request_fulluri'   => true,
-                    'header'            =>
-                        "User-Agent:" . $this->getAgent() . "\r\n"
-                )
-            );
-
             // parse url into components.
             $url_components = parse_url($url);
 
             // Get cache file (path included).
             $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
-            // Set proxy server if one is available.
-            $proxy = $this->getProxyServer();
-            
-            if (isset($proxy))
-                $opts['proxy'] = $proxy;
+            $opts = $this->getOptions();
 
             @file_get_contents($url, false, $wrapper->create($url, $opts));
+            $status_code = $this->getStatusCodeFromResponseHeader($http_response_header[0]);
 
-            $this->assertEquals($url.": HTTP/1.1 200 OK", $url.": ".$http_response_header[0]);
+            $this->assertEquals($url.": 200", $url.": ". $status_code);
             $this->assertEquals(false, file_exists($cache_file));
         }
+    }
+
+
+    /**
+     * Convert "HTTP/1.1 200" OK to "200"
+     *
+     * @param string $header
+     * @return string
+     */
+    public function getStatusCodeFromResponseHeader($header)
+    {
+        preg_match_all('#HTTP/\d+\.\d+ (\d+)#', $header, $results);
+
+        return $results[1][0];
     }
 }
