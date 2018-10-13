@@ -117,12 +117,13 @@ abstract class TestCase extends BaseTestCase
     {
         $tries = 3;
         while ($tries > 0) {
-
             $proxyServer = $this->findNewProxyServer();
 
             if ($this->isProxyServerWorking($proxyServer)) {
                 $this->cache->set('proxy_server', $proxyServer);
                 $this->setProxyServer($proxyServer);
+
+                return;
             }
 
             $tries--;
