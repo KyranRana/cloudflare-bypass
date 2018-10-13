@@ -66,12 +66,17 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_HEADER, 1);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_VERBOSE, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Proxy-Connection' => null
+            ]);
             
             // Set a proxy server if one is available.
             $proxy = $this->getProxyServer();
 
-            if (isset($proxy))
+            if (isset($proxy)) {
                 curl_setopt($ch, CURLOPT_PROXY, $proxy);
+            }
 
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 
@@ -110,6 +115,7 @@ class CurlTest extends TestCase
             curl_setopt($ch, CURLOPT_HEADER, 1);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_VERBOSE, true);
 
             $url_components = parse_url($url);
 
@@ -119,8 +125,9 @@ class CurlTest extends TestCase
             // Set a proxy server if one is available.
             $proxy = $this->getProxyServer();
 
-            if (isset($proxy))
+            if (isset($proxy)) {
                 curl_setopt($ch, CURLOPT_PROXY, $proxy);
+            }
 
             curl_setopt($ch, CURLOPT_USERAGENT, $this->getAgent());
 

@@ -40,8 +40,7 @@ class GuzzleHttpTest extends TestCase
 
         foreach ($this->urls as $url) {
             // Make sure each site is protected by CF.
-            $response = $client->request('GET', $url, [
-            ]);
+            $response = $client->request('GET', $url, []);
 
             $this->assertEquals($url.": "."503", $url.": ".$response->getStatusCode());
         }

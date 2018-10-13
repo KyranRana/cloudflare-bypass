@@ -16,7 +16,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected $urls = [
         "https://thebot.net/",
-        "http://predb.me/?search=test"
+        "https://predb.me/?search=test"
     ];
 
     /**
@@ -104,11 +104,12 @@ abstract class TestCase extends BaseTestCase
     {
         $proxyServer = $this->cache->get('proxy_server');
 
-        if (!$proxyServer || !$this->isProxyServerWorking($proxyServer)) {
+        if ($proxyServer && $this->isProxyServerWorking($proxyServer)) {
+            $this->setProxyServer($proxyServer);
+        } else {
             $this->detectProxyServer();
         }
 
-        $this->setProxyServer($proxyServer);
     }
 
     /**
