@@ -106,7 +106,9 @@ abstract class TestCase extends BaseTestCase
 
         if (!$proxyServer || !$this->isProxyServerWorking($proxyServer)) {
             $this->detectProxyServer();
-        } 
+        }
+
+        $this->setProxyServer($proxyServer);
     }
 
     /**
