@@ -38,7 +38,7 @@ abstract class TestCase extends BaseTestCase
  	 */
     public function setUp()
     {
-        $this->cache = new FilesystemCache('', 60*60*24);
+        $this->cache = new FilesystemCache('', 3600);
         $this->iniProxyServer();
     }
 
@@ -80,20 +80,21 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Find new proxy
+     * Find proxy servers
      *
-     * @return string
+     * @return array
      */
-    public function findNewProxyServer()
+    public function findProxyServers()
     {
         $client = new Client();
 
-        # Attention to the rate limit
-        $response = $client->request('GET', 'https://api.getproxylist.com/proxy');
+        $response = $client->request('GET', 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt');
 
-        $body = json_decode((string) $response->getBody());
+        $body = (string) $response->getBody();
 
-        return $body->ip.":".$body->port;
+        preg_match_all("/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\:?([0-9]{1,5})/", $body, $matches);
+
+        return $matches[0];
     }
 
     /**
@@ -115,18 +116,16 @@ abstract class TestCase extends BaseTestCase
      */
     public function detectProxyServer()
     {
-        $tries = 3;
-        while ($tries > 0) {
-            $proxyServer = $this->findNewProxyServer();
 
+        $proxyServers = $this->findProxyServers();
+
+        foreach ($proxyServers as $proxyServer) {
             if ($this->isProxyServerWorking($proxyServer)) {
                 $this->cache->set('proxy_server', $proxyServer);
                 $this->setProxyServer($proxyServer);
 
                 return;
             }
-
-            $tries--;
         }
 
         throw new \Exception("Cannot find a valid proxy server");
