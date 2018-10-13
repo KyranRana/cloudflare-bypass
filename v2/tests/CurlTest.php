@@ -6,16 +6,6 @@ use CloudflareBypass\RequestMethod\CFCurl;
 
 class CurlTest extends TestCase
 {
-    /**
-     * Urls to test
-     *
-     * @var string
-     */
-    protected $urls = [
-        "https://thebot.net/",
-        "http://dll.anime47.com/",
-        "http://predb.me/?search=test"
-    ];
     
     /**
      * Test 503 (without bypass)

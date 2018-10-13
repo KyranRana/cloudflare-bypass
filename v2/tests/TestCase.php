@@ -7,6 +7,16 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
 
+    /**
+     * Urls to test
+     *
+     * @var string
+     */
+    protected $urls = [
+        "https://thebot.net/",
+        "http://predb.me/?search=test"
+    ];
+    
 	/**
  	 * Set up.
  	 */
