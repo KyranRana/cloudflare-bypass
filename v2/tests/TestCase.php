@@ -39,7 +39,7 @@ abstract class TestCase extends BaseTestCase
     public function setUp()
     {
         $this->cache = new FilesystemCache('', 3600);
-        $this->iniProxyServer();
+        $this->setProxyServer($this->detectProxyServer());
     }
 
     /**
@@ -98,21 +98,6 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Ini proxy server
-     */
-    public function iniProxyServer()
-    {
-        $proxyServer = $this->cache->get('proxy_server');
-
-        if ($proxyServer && $this->isProxyServerWorking($proxyServer)) {
-            $this->setProxyServer($proxyServer);
-        } else {
-            $this->detectProxyServer();
-        }
-
-    }
-
-    /**
      * Find a valid proxy
      *
      * @return string
@@ -124,10 +109,7 @@ abstract class TestCase extends BaseTestCase
 
         foreach ($proxyServers as $proxyServer) {
             if ($this->isProxyServerWorking($proxyServer)) {
-                $this->cache->set('proxy_server', $proxyServer);
-                $this->setProxyServer($proxyServer);
-
-                return;
+                return $proxyServer;
             }
         }
 
