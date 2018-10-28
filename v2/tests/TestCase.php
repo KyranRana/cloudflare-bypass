@@ -3,17 +3,117 @@
 namespace CloudflareBypass\Tests;
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
+use GuzzleHttp\Client;
+use Symfony\Component\Cache\Simple\FilesystemCache;
 
 abstract class TestCase extends BaseTestCase
 {
 
+    /**
+     * Urls to test
+     *
+     * @var string
+     */
+    protected $urls = [
+        "https://thebot.net/",
+        "https://predb.me/?search=test"
+    ];
+
+    /**
+     * Proxy Server address
+     *
+     * @var string
+     */
+    protected $proxyServer;
+
+    /**
+     * Fylesystem Cache
+     *
+     * @var \Symfony\Component\Cache\Simple\FilesystemCache
+     */
+    protected $cache;
+    
 	/**
  	 * Set up.
  	 */
     public function setUp()
     {
-        $dotenv = new \Dotenv\Dotenv(__DIR__.'/..', '.env');
-        $dotenv->load();
+        $this->cache = new FilesystemCache('', 3600);
+        $this->setProxyServer($this->detectProxyServer());
+    }
+
+    /**
+     * Set proxy server
+     *
+     * @var string $proxyServer
+     */
+    public function setProxyServer($proxyServer)
+    {
+        $this->proxyServer = $proxyServer;
+    } 
+
+    /**
+     * Get a proxy server.
+     *
+     * @return string
+     */
+    public function getProxyServer()
+    {
+        return $this->proxyServer;
+    }
+
+    /**
+     * Is proxy server not down
+     * 
+     * @param string $proxyServer
+     * 
+     * @return bool
+     */
+    public function isProxyServerWorking(string $proxyServer)
+    {
+        $timeout = 5;
+        $splited = explode(':',$proxyServer);
+        
+        $con = @fsockopen($splited[0], $splited[1], $errorNumber, $errorMessage, $timeout);
+
+        return $con;
+    }
+
+    /**
+     * Find proxy servers
+     *
+     * @return array
+     */
+    public function findProxyServers()
+    {
+        $client = new Client();
+
+        $response = $client->request('GET', 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt');
+
+        $body = (string) $response->getBody();
+
+        preg_match_all("/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\:?([0-9]{1,5})/", $body, $matches);
+
+        return $matches[0];
+    }
+
+    /**
+     * Find a valid proxy
+     *
+     * @return string
+     */
+    public function detectProxyServer()
+    {
+
+        $proxyServers = $this->findProxyServers();
+
+        foreach ($proxyServers as $proxyServer) {
+            if ($this->isProxyServerWorking($proxyServer)) {
+                return $proxyServer;
+            }
+        }
+
+        throw new \Exception("Cannot find a valid proxy server");
     }
     
     /**
@@ -24,16 +124,6 @@ abstract class TestCase extends BaseTestCase
     public function getAgent()
     {
     	return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
-    }
-
-    /**
-     * Get a proxy server.
-     *
-     * @return string
-     */
-    public function getProxyServer()
-    {
-    	return getenv('PROXY_SERVER', null);
     }
 
     /**

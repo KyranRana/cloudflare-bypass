@@ -9,17 +9,6 @@ use GuzzleHttp\Cookie\CookieJar;
 class GuzzleHttpTest extends TestCase
 {
     /**
-     * Urls to test
-     *
-     * @var string
-     */
-    protected $urls = [
-        "https://thebot.net/",
-        "http://dll.anime47.com/",
-        "http://predb.me/?search=test"
-    ];
-
-    /**
      * Retrieve the client
      *
      * @return Client
@@ -51,8 +40,7 @@ class GuzzleHttpTest extends TestCase
 
         foreach ($this->urls as $url) {
             // Make sure each site is protected by CF.
-            $response = $client->request('GET', $url, [
-            ]);
+            $response = $client->request('GET', $url, []);
 
             $this->assertEquals($url.": "."503", $url.": ".$response->getStatusCode());
         }
