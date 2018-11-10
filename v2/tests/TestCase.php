@@ -40,6 +40,8 @@ abstract class TestCase extends BaseTestCase
     {
         $this->cache = new FilesystemCache('', 3600);
         $this->setProxyServer($this->detectProxyServer());
+
+        echo "selected: ".$this->getProxyServer()."\n";
     }
 
     /**
@@ -71,12 +73,50 @@ abstract class TestCase extends BaseTestCase
      */
     public function isProxyServerWorking(string $proxyServer)
     {
-        $timeout = 5;
+        echo "trying $proxyServer...\n";
+
+        $timeout = 1;
         $splited = explode(':',$proxyServer);
         
         $con = @fsockopen($splited[0], $splited[1], $errorNumber, $errorMessage, $timeout);
 
-        return $con;
+        if (!$con) {
+            return false;
+        }
+
+
+        $client = new Client();
+
+        foreach ($this->urls as $url) {
+
+            try {
+
+                $start = microtime(true);
+
+                $response = $client->request(
+                    'GET', 
+                    $this->urls[0], 
+                    [
+                        'proxy' => 'tcp://'.$proxyServer,
+                        'http_errors'   => false,
+                    ]
+                );
+
+                if ((microtime(true) - $start)/1000 > 1) {
+                    return false;
+                }
+            } catch (\GuzzleHttp\Exception\ConnectException $e) {
+                return false;
+            } catch (\GuzzleHttp\Exception\RequestException $e) {
+                return false;
+            }
+
+            if ($response->getStatusCode() !== 503) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -86,6 +126,7 @@ abstract class TestCase extends BaseTestCase
      */
     public function findProxyServers()
     {
+
         $client = new Client();
 
         $response = $client->request('GET', 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt');
@@ -104,11 +145,17 @@ abstract class TestCase extends BaseTestCase
      */
     public function detectProxyServer()
     {
+        // if ($this->cache->has('cf-bypass-proxy-server')) {
+            // return $this->cache->get('cf-bypass-proxy-server');
+        // }
 
         $proxyServers = $this->findProxyServers();
 
         foreach ($proxyServers as $proxyServer) {
             if ($this->isProxyServerWorking($proxyServer)) {
+
+                // $this->cache->set('cf-bypass-proxy-server', $proxyServer);
+
                 return $proxyServer;
             }
         }
