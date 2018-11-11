@@ -102,7 +102,7 @@ abstract class TestCase extends BaseTestCase
                     ]
                 );
 
-                if ((microtime(true) - $start)/1000 > 1) {
+                if ((microtime(true) - $start)/1000 > 0.8) {
                     return false;
                 }
             } catch (\GuzzleHttp\Exception\ConnectException $e) {
@@ -110,7 +110,7 @@ abstract class TestCase extends BaseTestCase
             } catch (\GuzzleHttp\Exception\RequestException $e) {
                 return false;
             }
-            
+
             if ($response->getStatusCode() !== 503) {
                 return false;
             }
