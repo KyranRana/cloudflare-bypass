@@ -95,7 +95,7 @@ abstract class TestCase extends BaseTestCase
 
                 $response = $client->request(
                     'GET', 
-                    $this->urls[0], 
+                    $url, 
                     [
                         'proxy' => 'tcp://'.$proxyServer,
                         'http_errors'   => false,
@@ -110,7 +110,7 @@ abstract class TestCase extends BaseTestCase
             } catch (\GuzzleHttp\Exception\RequestException $e) {
                 return false;
             }
-
+            
             if ($response->getStatusCode() !== 503) {
                 return false;
             }
