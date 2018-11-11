@@ -73,7 +73,7 @@ class CFBypass
         preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
         
         if (!isset($matches[1]) || !isset($matches[1][1])) {
-            throw new \ErrorException('Unable to fetch jschl_vc and pass values; maybe not protected?');
+            throw new \ErrorException(sprintf('Unable to fetch jschl_vc and pass values; maybe not protected? Content Page: %s', base64_encode($content)));
         }
         
         $params = array();
@@ -94,7 +94,7 @@ class CFBypass
         preg_match_all('/:[\/!\[\]+()]+|[-*+\/]?=[\/!\[\]+()]+/', $cf_script, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0])) {
-            throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
+            throw new \ErrorException(sprintf('Unable to find javascript challenge logic; maybe not protected? Content Page: %s'.base64_encode($content)));
         }
         
         try {
@@ -153,7 +153,7 @@ class CFBypass
             $this->debug(sprintf("Generated clearance link: %s", $url));
 
             return $url;
-        }
+        } 
         catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug
             throw new \ErrorException(sprintf('Something went wrong! Please report an issue: %s', $ex->getMessage()));
