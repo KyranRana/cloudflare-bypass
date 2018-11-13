@@ -153,7 +153,7 @@ class CFBypass
             $this->debug(sprintf("Generated clearance link: %s", $url));
 
             return $url;
-        }
+        } 
         catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug
             throw new \ErrorException(sprintf( "Something went wrong! issue: %s\ncontent (base64): %s", $ex->getMessage(), base64_encode($content) ));

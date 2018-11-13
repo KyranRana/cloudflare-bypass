@@ -19,7 +19,9 @@ class GuzzleHttpTest extends TestCase
             'headers' => array(
                 'User-Agent' => $this->getAgent()
             ),
+            'verify'        => false,
             'curl' => $this->getCurlOptions(),
+            'proxy' => 'tcp://'.$this->getProxyServer(),
             'http_errors'   => false,
             'debug'         => false
         ];
