@@ -78,7 +78,7 @@ class CFStream extends \CloudflareBypass\CFCore
         /*
          * 3. Solve challenge and request clearance link
          */
-        $stream_copy->setURL($this->getClearanceLink($response, $url));
+        $stream_copy->setURL($this->getClearanceLink($response, $url, $context));
         $stream_copy->setHttpContextOption('follow_location', 1);
 
         // GET clearance link.

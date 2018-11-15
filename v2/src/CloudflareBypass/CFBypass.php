@@ -58,7 +58,7 @@ class CFBypass
      * @throws \ErrorException if PHP evaluation of JavaScript arithmetic code FAILS
      * @return string Clearance link
      */
-    protected function getClearanceLink($content, $url)
+    protected function getClearanceLink($content, $url, $context=array())
     {
         /*
          * 1. Mimic waiting process
@@ -73,7 +73,7 @@ class CFBypass
         preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
         
         if (!isset($matches[1]) || !isset($matches[1][1])) {
-            throw new \ErrorException(sprintf( 'Unable to fetch jschl_vc and pass values; maybe not protected? content (base64): %s', base64_encode($content) ));
+            throw new \ErrorException(sprintf( 'Unable to fetch jschl_vc and pass values; maybe not protected? content (base64): %s  context (base64): %s', base64_encode($content), base64_encode(json_encode($context)) ));
         }
         
         $params = array();
@@ -94,7 +94,7 @@ class CFBypass
         preg_match_all('/:[\/!\[\]+()]+|[-*+\/]?=[\/!\[\]+()]+/', $cf_script, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0])) {
-            throw new \ErrorException(sprintf( 'Unable to find javascript challenge logic; maybe not protected? content (base64): %s', base64_encode($content) ));
+            throw new \ErrorException(sprintf( 'Unable to find javascript challenge logic; maybe not protected? content (base64): %s   context (base64): %s', base64_encode($content), base64_encode(json_encode($context)) ));
         }
         
         try {
@@ -156,7 +156,7 @@ class CFBypass
         } 
         catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug
-            throw new \ErrorException(sprintf( "Something went wrong! issue: %s\ncontent (base64): %s", $ex->getMessage(), base64_encode($content) ));
+            throw new \ErrorException(sprintf( "Something went wrong! issue: %s\ncontent (base64): %s  context (base64): %s", $ex->getMessage(), base64_encode($content), base64_encode(json_encode($context)) ));
         }
     }
 }
