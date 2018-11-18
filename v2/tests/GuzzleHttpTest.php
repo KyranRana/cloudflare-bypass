@@ -8,36 +8,25 @@ use GuzzleHttp\Cookie\CookieJar;
 
 class GuzzleHttpTest extends TestCase
 {
-
-    /**
-     * Urls to test
-     *
-     * @var string
-     */
-    protected $urls = [
-        "http://thebot.net/",
-        "http://dll.anime47.com/",
-        "http://predb.me/?search=test",
-        "http://torrentz2.eu/"
-    ];
-
     /**
      * Retrieve the client
      *
      * @return Client
      */
     public function getClient()
-    {
-        $client = new Client([
+    {   
+        $opts = [
             'headers' => array(
                 'User-Agent' => $this->getAgent()
             ),
-            'curl' => array(
-                CURLOPT_PROXY => $this->getProxyServer()
-            ),
-            'http_errors' => false,
-            'debug' => true
-        ]);
+            'verify'        => false,
+            'curl' => $this->getCurlOptions(),
+            'proxy' => 'tcp://'.$this->getProxyServer(),
+            'http_errors'   => false,
+            'debug'         => false
+        ];
+
+        $client = new Client($opts);
 
         return $client;
     }
@@ -49,13 +38,11 @@ class GuzzleHttpTest extends TestCase
      */
     public function test503()
     {
-
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
             // Make sure each site is protected by CF.
-            $response = $client->request('GET', $url, [
-            ]);
+            $response = $client->request('GET', $url, []);
 
             $this->assertEquals($url.": "."503", $url.": ".$response->getStatusCode());
         }
@@ -66,40 +53,28 @@ class GuzzleHttpTest extends TestCase
      *
      * @return void
      */
-    public function test200()
+    public function test200WithCache() 
     {
-        // Initialize CFStream.
+         // Initialize CFStream.
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => true
+            'verbose'       => false
         ));
 
-        $opts = array(
-            'http' => array(
-                'method'         => "GET",
-                'header'         => "User-Agent:".$this->getAgent(),
-                'followlocation' => true
-            ),
-            'curl' => array(
-                CURLOPT_PROXY => $this->getProxyServer()
-            ),
-        );
-
+        $opts = $this->getOptions();
+      
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
             // Parse url into components.
             $url_components = parse_url($url);
 
-            // Get cache file (path included).
-            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
-            file_exists($cache_file) && unlink($cache_file);
-            
+            $cache_file = __DIR__ . "/../var/cache/" . md5($url_components['host']);
+
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->create($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
-
 
             $response = $client->request('GET', $url, [
                 'cookies' => $cookie_jar,
@@ -113,4 +88,43 @@ class GuzzleHttpTest extends TestCase
             unlink($cache_file);
         }
     }
+
+
+    /**
+     * Test 200 (with bypass)
+     *
+     * @return void
+     */
+    public function test200WithNoCache()
+    {
+        // Initialize CFStream.
+        $stream_cf_wrapper = new CFStream(array(
+            'cache'         => false,
+            'cache_path'    => __DIR__."/../var/cache",
+            'verbose'       => false
+        ));
+
+        $opts = $this->getOptions();
+        $client = $this->getClient();
+
+        foreach ($this->urls as $url) {
+            // Parse url into components.
+            $url_components = parse_url($url);
+
+            // Bypass each site using CFStream wrapper.
+            $stream     = $stream_cf_wrapper->create($url, $opts);
+            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
+
+            $response = $client->request('GET', $url, [
+                'cookies' => $cookie_jar,
+            ]);
+
+            // Get cache file (path included).
+            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
+
+            $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
+            $this->assertEquals(false, file_exists($cache_file));
+        }
+    }
+
 }

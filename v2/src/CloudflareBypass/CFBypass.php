@@ -4,8 +4,8 @@ namespace CloudflareBypass;
 class CFBypass
 {
     /**
-     * Check if page is a IUAM page. Given page content and headers, will check if page is
-     * protected by CloudFlare (to my best of judgment).
+     * Given page content and headers, will check if page is protected by CloudFlare.
+     * (This method is NOT accurate and may fail in rare cases) 
      *
      * Response Headers Properties
      *
@@ -58,7 +58,7 @@ class CFBypass
      * @throws \ErrorException if PHP evaluation of JavaScript arithmetic code FAILS
      * @return string Clearance link
      */
-    protected function getClearanceLink($content, $url)
+    protected function getClearanceLink($content, $url, $context=array())
     {
         /*
          * 1. Mimic waiting process
@@ -73,7 +73,7 @@ class CFBypass
         preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
         
         if (!isset($matches[1]) || !isset($matches[1][1])) {
-            throw new \ErrorException('Unable to fetch jschl_vc and pass values; maybe not protected?');
+            throw new \ErrorException(sprintf( 'Unable to fetch jschl_vc and pass values; maybe not protected? content (base64): %s  context (base64): %s', base64_encode($content), base64_encode(json_encode($context)) ));
         }
         
         $params = array();
@@ -94,7 +94,7 @@ class CFBypass
         preg_match_all('/:[\/!\[\]+()]+|[-*+\/]?=[\/!\[\]+()]+/', $cf_script, $matches);
         
         if (!isset($matches[0]) || !isset($matches[0][0])) {
-            throw new \ErrorException('Unable to find javascript challenge logic; maybe not protected?');
+            throw new \ErrorException(sprintf( 'Unable to find javascript challenge logic; maybe not protected? content (base64): %s   context (base64): %s', base64_encode($content), base64_encode(json_encode($context)) ));
         }
         
         try {
@@ -153,10 +153,10 @@ class CFBypass
             $this->debug(sprintf("Generated clearance link: %s", $url));
 
             return $url;
-        }
+        } 
         catch (\Exception $ex) {
             // PHP evaluation bug; inform user to report bug
-            throw new \ErrorException(sprintf('Something went wrong! Please report an issue: %s', $ex->getMessage()));
+            throw new \ErrorException(sprintf( "Something went wrong! issue: %s\ncontent (base64): %s  context (base64): %s", $ex->getMessage(), base64_encode($content), base64_encode(json_encode($context)) ));
         }
     }
 }

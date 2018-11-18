@@ -20,9 +20,8 @@ class CFCurl extends \CloudflareBypass\CFCore
     {
         if ($root_scope) {
             $ch = new Curl($ch);
-            $ch->setopt(CURLOPT_VERBOSE, $this->verbose);
-            
-            // Check if clearance tokens exists in a cache file. 
+                        
+            // Check if clearance tokens exist in a cache file.
             if (isset($this->cache) && $this->cache) {
                 $info = $ch->getinfo();
                 $components = parse_url($info['url']);
@@ -83,25 +82,23 @@ class CFCurl extends \CloudflareBypass\CFCore
         /*
          * 3. Solve challenge and request clearance link
          */
+        $ch_copy->setopt(CURLOPT_URL, $this->getClearanceLink($uam_response, $uam_response_info['url']));
+        $ch_copy->setopt(CURLOPT_FOLLOWLOCATION, true);
+
+        // GET clearance link.
+        $ch_copy->setopt(CURLOPT_CUSTOMREQUEST, 'GET');
+        $ch_copy->setopt(CURLOPT_HTTPGET, true);
+        $ch_copy->exec();
+
+        /*
+         * 4. Extract "cf_clearance" cookie
+         */
         if (!($cfclearance_cookie = $ch_copy->getCookie('cf_clearance'))) {
-            $ch_copy->setopt(CURLOPT_URL, $this->getClearanceLink($uam_response, $uam_response_info['url']));
-            $ch_copy->setopt(CURLOPT_FOLLOWLOCATION, true);
-
-            // GET clearance link.
-            $ch_copy->setopt(CURLOPT_CUSTOMREQUEST, 'GET');
-            $ch_copy->setopt(CURLOPT_HTTPGET, true);
-            $ch_copy->exec();
-
-            /*
-             * 4. Extract "cf_clearance" cookie
-             */
-            if (!($cfclearance_cookie = $ch_copy->getCookie('cf_clearance'))) {
-                if ($retry > $this->max_retries) {
-                    throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");
-                }
-
-                $cfclearance_cookie = $this->exec($ch, false, $retry+1);
+            if ($retry > $this->max_retries) {
+                throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");
             }
+
+            $cfclearance_cookie = $this->exec($ch, false, $retry+1);
         }
 
         // Not in root scope, return clearance cookie.
@@ -124,13 +121,11 @@ class CFCurl extends \CloudflareBypass\CFCore
         }
        
         /*
-         * 5. Set "__cfduid" and "cf_clearance" in original cURL handle
+         * 5. Set "__cfduid" and "cf_clearance" in original cURL handle (as well as session cookies)
          */
         foreach ($ch_copy->getCookies() as $cookie => $val) {
             $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
         }
-
-        $ch->setopt(CURLOPT_VERBOSE, $this->verbose);
 
         return $ch->exec();
     }

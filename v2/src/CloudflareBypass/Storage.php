@@ -3,7 +3,6 @@ namespace CloudflareBypass;
 
 class Storage
 {
-
     /**
      * Path storage
      *

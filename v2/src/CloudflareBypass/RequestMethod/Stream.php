@@ -1,7 +1,7 @@
 <?php
 namespace CloudflareBypass\RequestMethod;
 
-class StreamContext
+class Stream
 {
     /**
      * Cookies set per request.
@@ -87,7 +87,7 @@ class StreamContext
      */
     public function copyHandle()
     {
-        return new StreamContext($this->url, $this->context);
+        return new Stream($this->url, $this->context);
     }
 
     /**
@@ -165,9 +165,10 @@ class StreamContext
      *
      * @access public
      * @see http://php.net/file-get-contents
+     * @param {boolean} verbose  True to set verbose flag in cURL.
      * @return string
      */
-    public function fileGetContents()
+    public function fileGetContents($verbose = false)
     {
         $this->updateContext();
 
@@ -200,12 +201,10 @@ class StreamContext
         });
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $follow_location);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_VERBOSE, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, $verbose);
 
         if (isset($this->context['curl'])) {
-            foreach ($this->context['curl'] as $opt => $value) {
-                curl_setopt($ch, $opt, $value);
-            }
+            curl_setopt_array($ch, $this->context['curl']);
         }
 
         // Get request body.
