@@ -35,9 +35,6 @@ class CFCurl extends \CloudflareBypass\CFCore
                 }
             }
         }
-
-        // Enable cookie engine.
-        $ch->setopt( CURLOPT_COOKIELIST, [''] );
         
         // Request original page.
         $response           = $ch->exec();
