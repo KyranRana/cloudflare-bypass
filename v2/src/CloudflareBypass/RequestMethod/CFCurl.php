@@ -5,128 +5,175 @@ class CFCurl extends \CloudflareBypass\CFCore
 {
     /**
      * Bypasses cloudflare using a curl handle. Given a curl handle this method will behave 
-     * like "curl_exec" however it will take care of the IUAM page if it pops up. This method 
-     * creates a copy of the curl handle passed through for the CF process.
+     * like "curl_exec" however it will take care of the IUAM page if it pops up. 
+     * 
+     * Requirements:
+     * - cURL handle will need to have a user agent set.
      *
      * @access public
-     * @param resource $ch cURL handle
-     * @param bool $root_scope Used in retry process (DON'T MODIFY)
-     * @param integer $retry   Used in retry process (DON'T MODIFY)
-     * @throws \ErrorException if "CURLOPT_USERAGENT" IS NOT set
-     * @throws \ErrorException if retry process FAILS more than 4 times consecutively
-     * @return string Response body
+     * @param resource $ch  cURL handle
+     * @throws \ErrorException  if "CURLOPT_USERAGENT" IS NOT set
+     * @throws \ErrorException  if retry process FAILS more than 4 times consecutively
+     * @return string  Response body
      */
-    public function exec($ch, $root_scope = true, $retry = 1)
+    public function exec( $ch )
     {
-        if ($root_scope) {
-            $ch = new Curl($ch);
-                        
-            // Check if clearance tokens exist in a cache file.
-            if (isset($this->cache) && $this->cache) {
-                $info = $ch->getinfo();
-                $components = parse_url($info['url']);
+        // -- 1. Request the original page and confirm its protected.
 
-                // Set clearance tokens.
-                if (($cached = $this->cache->fetch($components['host'])) !== false) {
-                    foreach ($cached as $cookie => $val) {
-                        $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
-                    }
+        $ch = new Curl($ch);
+
+        // Add the original cookies to cURL if they exist in cache.
+        if (isset( $this->cache ) && $this->cache) {
+            $info           = $ch->getinfo();
+            $components     = parse_url( $info['url'] );
+
+            $this->debug( sprintf( "Found clearance cookie in cache for site: %s", $info['url'] ) );
+            
+            if (($cached = $this->cache->fetch( $components['host'] )) !== false) {
+                foreach ($cached as $cookieString) {
+                    $ch->setopt( CURLOPT_COOKIELIST, $cookieString );
                 }
             }
-
-            // Request original page.
-            $response = $ch->exec();
-            $response_info = $ch->getinfo();
-
-            // Check if page is protected by Cloudflare.
-            if (!$this->isProtected($response, $response_info)) {
-                return $response;
-            }
-
-            // Clone curl object handle.
-            $ch_copy = $ch->copyHandle();
-            $ch_copy->setopt(CURLOPT_VERBOSE, $this->verbose);
-
-            // Enable response header and cookie storage.
-            $ch_copy->enableResponseStorage();
-
-            // Assign neccessary options.
-            $ch_copy->setopt(CURLINFO_HEADER_OUT, true);
-        } else {
-            // Not in root scope so $ch is a clone.
-            $ch_copy = $ch;
         }
 
-        // Request UAM page with necessary settings.
-        $uam_response = $ch_copy->exec();
-        $uam_response_info = $ch_copy->getinfo();
+        // Enable cookie engine.
+        $ch->setopt( CURLOPT_COOKIELIST, [''] );
+        
+        // Request original page.
+        $response           = $ch->exec();
+        $response_info      = $ch->getinfo();
 
-        if ($root_scope) {
-            /*
-             * 1. Check if user agent is set in cURL handle
+        /* If       original page is not protected by CloudFlare
+         * Then     return original page
+         */
+        if (!$this->isProtected( $response, $response_info ))
+            return $response;
+
+        // Debug
+        $this->debug("CFCurl 1. cURL handle checked and validated as protected.");
+
+
+
+        // -- 2. Setup a copy of the cURL handle and set the required options.
+
+        // Copy cURL handle.
+        $ch_copy = $ch->getCopyOfResource();
+
+        /* Set required options for new cURL handle:
+         *
+         * Toggle-able:
+         *      CURLOPT_VERBOSE             Turns on verbose mode if $this->verbose is TRUE.
+         *                                  - Shows debug information for each request made during the bypass.
+         *
+         * Always set:
+         *      CURLOPT_HEADERFUNCTION      To allow us to retrieve response headers and cookies.
+         *      CURLINFO_HEADER_OUT         To allow us to retrieve request headers.
+         */
+        $ch_copy->setopt( CURLOPT_VERBOSE, $this->verbose );
+        $ch_copy->setopt( CURLINFO_HEADER_OUT, true );
+        $ch_copy->setopt( CURLOPT_HEADERFUNCTION, [
+            $ch_copy, 
+            'setResponseHeader' 
+        ] );
+
+        // Debug
+        $this->debug("CFCurl 2. cURL handle copied and required options set.");
+
+
+
+        // -- 3. Attempt to bypass the CloudFlare IUAM page.
+
+        $first_attempt      = true;     // TRUE if its the first time trying to bypass CF.
+        $try_counter        = 0;        // How many times the bypass process has been tried.
+
+        while ( $try_counter < $this->max_retries ) {
+
+            // -- 3.1. Request UAM page again with new cURL handle.
+
+            $uam_response           = $ch_copy->exec();
+            $uam_response_info      = $ch_copy->getinfo();
+
+            // Debug
+            $this->debug( sprintf( "CFCurl 3.1. (try %s  first_attempt: %s) uam page requested with new cURL handle", $try_counter, $first_attempt ) );
+
+
+
+            // -- 3.2. Validate cURL handle has user agent and "__cfduid" cookie set. (only on first attempt)
+
+            /* If       its the first attempt at trying to bypass CF.
+             * And      cURL handle has NO user agent set.
+             * Then     throw exception.
              */
-            if (!$ch_copy->getRequestHeader('User-Agent')) {
-                throw new \ErrorException('CURLOPT_USERAGENT is a mandatory field!');
-            }
+            if ($first_attempt && !$ch_copy->getRequestHeader('User-Agent'))
+                throw new \ErrorException('CFCurl -> You need to set a user agent!');
 
-            /*
-             * 2. Extract "__cfuid" cookie
+            /* If       cURL handle has NO cookie named "__cfduid".
+             * Then     throw exception.
              */
-            if (!($cfduid_cookie = $ch_copy->getCookie('__cfduid'))) {
-                return $response;
-            }
-            
-            $ch_copy->setopt(CURLOPT_COOKIELIST, $cfduid_cookie);
-        }
+            if ($first_attempt && !($cfduid_cookie = $ch_copy->getCookie('__cfduid')))
+                throw new \ErrorException('CFCurl -> The cookie named "__cfduid" does not exist!');
 
-        /*
-         * 3. Solve challenge and request clearance link
-         */
-        $ch_copy->setopt(CURLOPT_URL, $this->getClearanceLink($uam_response, $uam_response_info['url']));
-        $ch_copy->setopt(CURLOPT_FOLLOWLOCATION, true);
+            // Debug
+            $this->debug( sprintf( "CFCurl 3.2. (try: %s  first_attempt: %s) __cfduid cookie is %s", $try_counter, $first_attempt, $cfduid_cookie ) );
 
-        // GET clearance link.
-        $ch_copy->setopt(CURLOPT_CUSTOMREQUEST, 'GET');
-        $ch_copy->setopt(CURLOPT_HTTPGET, true);
-        $ch_copy->exec();
 
-        /*
-         * 4. Extract "cf_clearance" cookie
-         */
-        if (!($cfclearance_cookie = $ch_copy->getCookie('cf_clearance'))) {
-            if ($retry > $this->max_retries) {
-                throw new \ErrorException("Exceeded maximum retries trying to get CF clearance!");
-            }
 
-            $cfclearance_cookie = $this->exec($ch, false, $retry+1);
-        }
+            // -- 3.3. Solve the JS challenge on the CF IUAM page.
 
-        // Not in root scope, return clearance cookie.
-        if ($cfclearance_cookie && !$root_scope) {
-            return $cfclearance_cookie;
-        }
+            // Get clearance link.
+            $clearance_link = $this->getClearanceLink( $uam_response, $uam_response_info['url'] );
 
-        $this->debug(sprintf("cfclearance_cookie: %s", $cfclearance_cookie));
+            // Access clearance link.
+            $ch_copy->setopt( CURLOPT_URL, $clearance_link );
+            $ch_copy->setopt( CURLOPT_FOLLOWLOCATION, true );
+            $ch_copy->setopt( CURLOPT_CUSTOMREQUEST, 'GET' );
+            $ch_copy->setopt( CURLOPT_HTTPGET, true );
+            $ch_copy->exec();
 
-        if (isset($this->cache) && $this->cache) {
-            $cookies = array();
-            $components = parse_url($uam_response_info['url']);
+            // Check if we are successful in bypassing cloudflare.
+            if ($cfclearance_cookie = $ch_copy->getCookie('cf_clearance')) {
 
-            foreach ($ch_copy->getCookies() as $cookie => $val) {
-                $cookies[$cookie] = $val;
+                // Debug
+                $this->debug( sprintf( "CFCurl 3.3. (try: %s  first_attempt: %s) cf_clearance cookie is %s", $try_counter, $first_attempt, $cfclearance_cookie ) );
+
+                break;
             }
 
-            // Store clearance tokens in cache.
-            $this->cache->store($components['host'], $cookies);
-        }
-       
-        /*
-         * 5. Set "__cfduid" and "cf_clearance" in original cURL handle (as well as session cookies)
-         */
-        foreach ($ch_copy->getCookies() as $cookie => $val) {
-            $ch->setopt(CURLOPT_COOKIELIST, 'Set-Cookie: ' . $val);
+
+            $first_attempt = false;
+
+            $try_counter++;
         }
 
-        return $ch->exec();
+        /* If       number of times we have tried to bypass CF has exceeded the maximum number of retries.
+         * Then     throw exception.
+         */
+        if ($try_counter === $this->max_retries)
+            throw new Exception('CFCurl -> Exceeded maximum number of retries at getting cookie "cf_clearance".');
+
+
+
+        // 4. Apply clearance cookies to original cURL handle.
+
+        $cookies = [];  // For caching cookies (if enabled).
+
+        foreach ( $ch_copy->getInfo( CURLINFO_COOKIELIST ) as $cookie ) {
+            $ch->setopt( CURLOPT_COOKIELIST, $cookie );
+
+            $cookies[] = $cookie;
+        }
+
+        // Store new clearance tokens in cache if caching is enabled.
+        if (isset( $this->cache ) && $this->cache) {
+            $components = parse_url( $uam_response_info['url'] );
+
+            $this->cache->store( $components['host'], $cookies );
+        }
+    
+        // Request actual website.
+        $success            = $ch->exec();
+        $success_info       = $ch->getinfo();
+
+        return $success;
     }
 }

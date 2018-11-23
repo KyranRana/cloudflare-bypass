@@ -21,8 +21,12 @@ class Curl
      */
     private $ch;
 
+
+
+
+
     /**
-     * Sets $this->ch to specified cURL handle.
+     * Initialises cURL handle.
      *
      * @access public
      * @param resource $curl cURL handle
@@ -37,61 +41,23 @@ class Curl
         $this->ch = $ch;
     }
 
-    /**
-     * Get request headers set for current request.
-     *
-     * @access public
-     */
-    public function getRequestHeaders()
-    {
-        return $this->request_headers;
-    }
 
-    /**
-     * Get cookies set for current request.
-     *
-     * @access public
-     */
-    public function getCookies()
-    {
-        return $this->cookies;
-    }
 
-    /**
-     * Enables cURL object handle to fetch and store response headers and cookies.
-     * WARNING: Overrides "CURLOPT_HEADERFUNCTION".
-     *
-     * @access public
-     * @return bool
-     */
-    public function enableResponseStorage()
-    {
-        return $this->setopt(CURLOPT_HEADERFUNCTION, array($this, 'storeResponseHeader'));
-    }
 
-    /**
-     * Clones cURL object handle.
-     *
-     * @access public
-     * @see http://php.net/curl-copy-handle
-     * @return object cURL object
-     */
-    public function copyHandle()
-    {
-        return new Curl(curl_copy_handle($this->ch));
-    }
+
+    // {{{ cURL Functions 
 
     /**
      * @access public
-     * @see http://php.net/curl_setopt
+     * @see http://php.net/curl-setopt
      * @param integer $opt
      * @param mixed $val
-     * @return bool
      */
-    public function setopt($opt, $val)
+    public function setopt( $opt, $val )
     {
-        return curl_setopt($this->ch, $opt, $val);
+        curl_setopt( $this->ch, $opt, $val );
     }
+
 
     /**
      * @access public
@@ -101,18 +67,17 @@ class Curl
      */
     public function getInfo($opt = null)
     {
-        $args = array($this->ch);
+        $args = [ $this->ch ];
 
-        if (func_num_args()) {
+        if (func_num_args())
             $args[] = $opt;
-        }
         
-        return call_user_func_array('curl_getinfo', $args);
+        return call_user_func_array( 'curl_getinfo', $args );
     }
 
+
     /**
-     * Truncates cookie feed.
-     * Truncates request headers.
+     * Executes cURL request.
      *
      * @access public
      * @see http://php.net/curl_exec
@@ -120,24 +85,29 @@ class Curl
      */
     public function exec()
     {
-        $this->cookies = array();
-        $this->request_headers = array();
+        $this->cookies              = array();
+        $this->request_headers      = array();
 
-        $res = curl_exec($this->ch);
-        $info = curl_getinfo($this->ch);
+        $res    = curl_exec( $this->ch );
+        $info   = curl_getinfo( $this->ch );
 
         if (isset($info['request_header'])) {
-            // Store request headers and cookies.
-            $headers = explode("\n", $info['request_header']);
-            $headers_count = count($headers);
+            $headers = explode( "\n", $info['request_header'] );
 
-            for ($i=0; $i<$headers_count; $i++) {
-                $this->storeRequestHeader($this->ch, $headers[$i]);
+            foreach ( $headers as $header ) {
+                // set request header
+                if (strpos( $header, ':' ) !== false)
+                    $this->setRequestHeader( $this->ch, $header );
+
+                // set request cookie
+                if (strpos( $header, 'Cookie' ) !== false)
+                    $this->setRequestCookie( $this->ch, $header );
             }
         }
 
         return $res;
     }
+
 
     /**
      * @access public
@@ -145,86 +115,163 @@ class Curl
      */
     public function close()
     {
-        curl_close($this->ch);
+        curl_close( $this->ch );
     }
 
+    // }}}
+
+
+
+
+
+    // {{{ Getters
+
     /**
-     * Returns full config for specified cookie name.
+     * Get cURL handle
      *
      * @access public
-     * @param string $cookie Cookie name
-     * @return string Cookie value or NULL
+     * @return resource  cURL handle.
      */
-    public function getCookie($cookie)
+    public function getResource()
     {
-        if (isset($this->cookies[$cookie])) {
+        return $this->ch;
+    }
+
+
+    /**
+     * Gets copy of cURL handle
+     *
+     * @access public
+     * @return resource  Copy of cURL handle.
+     */
+    public function getCopyOfResource()
+    {
+        $ch = curl_copy_handle( $this->ch );
+
+        return new Curl( $ch );
+    }
+
+
+    /**
+     * Get request headers set for current request.
+     *
+     * @access public
+     * @return array  Request headers.
+     */
+    public function getRequestHeaders()
+    {
+        return $this->request_headers;
+    }
+
+
+    /**
+     * Get cookies set for current request.
+     *
+     * @access public
+     * @return {array}  Cookies.
+     */
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+
+    /**
+     * Get cookie set for current request.
+     * 
+     * @access public
+     * @param string $cookie  Cookie name.
+     * @return mixed  Cookie value | null
+     */
+    public function getCookie( $cookie )
+    {
+        if (isset($this->cookies[$cookie]))
             return $this->cookies[$cookie];
-        }
 
         return null;
     }
 
+
     /**
-     * Returns value of specified request header.
+     * Get response header for current request.
      *
      * @access public
-     * @param string $header Request header
-     * @return string Request header or NULL
+     * @param string $header  Request header
+     * @return mixed  Request header | null
      */
-    public function getRequestHeader($header)
+    public function getRequestHeader( $header )
     {
-        if (isset($this->request_headers[$header])) {
+        if (isset($this->request_headers[$header]))
             return $this->request_headers[$header];
-        }
 
         return null;
     }
 
+    // }}}
+
+
+
+
+
+    // {{{ Setters
+
     /**
-     * Populates request headers into $this->request_headers (header name -> value).
-     * Populates cookies into $this->cookies (cookie name -> cookie value).
+     * Sets request header for current request.
      *
-     * @access private 
-     * @param resource $ch cURL handle
-     * @param string $header Request header
+     * @access public 
+     * @param resource $ch  cURL handle
+     * @param string $header  Request header
      */
-    private function storeRequestHeader($ch, $header)
+    public function setRequestHeader( $ch, $header )
     {
-        if (strpos($header, ':') !== false) {
-            // Match request header and value.
-            list($name, $val) = explode(':', $header);
-            $this->request_headers[$name] = $val;
-        }
+        list( $name, $val ) = explode( ':', $header );
 
-        if (strpos($header, 'Cookie') !== false) {
-            // Convert string into array of cookies.
-            $cookies = explode(';', substr($header, strpos($header, ':')+1));
-            $cookies_count = count($cookies);
+        $this->request_headers[$name] = $val;
+    }
 
-            // Store cookies.
-            for ($i=0; $i<$cookies_count; $i++) {
-                list($cookie, $val) = explode('=', trim($cookies[$i]));
-                $this->cookies[$cookie] = $cookie . '=' . $val . ';';                   
-            }
+
+    /**
+     * Sets cookie from request headers for current request.
+     *
+     * @access public
+     * @param resource $ch  cURL handle
+     * @param string $header  Request header
+     */
+    public function setRequestCookie( $ch, $header )
+    {
+        $value      = substr( $header, strpos( $header, ':' )+1 );
+        $cookies    = explode( ';', $value );
+
+        foreach ( $cookies as $cookie ) {
+            // Trim cookie.
+            $cookie = trim( $cookie );
+
+            list( $cookie, $val ) = explode( '=', $cookie );
+
+            $this->cookies[$cookie] = $val;
         }
     }
 
+
     /**
-     * Populates cookies set into $this->cookies (cookie name -> full cookie).
+     * Set cookies from response headers for current request.
      *
-     * @access private
-     * @param resource $ch cURL handle
-     * @param string $header Request header
-     * @return integer Byte-length of request header
+     * @access public
+     * @param resource $ch  cURL handle
+     * @param string $header  Response header.
+     * @return integer  Length of response header.
      */
-    private function storeResponseHeader($ch, $header)
+    public function setResponseHeader( $ch, $header )
     {
         if (strpos($header, 'Set-Cookie') !== false) {
-            // Match cookie name and value.
+            
             preg_match('/Set\-Cookie: ([^=]+)(.+)/', $header, $matches);
+    
             $this->cookies[$matches[1]] = $matches[1] . $matches[2];
         }
 
         return strlen($header);
     }
+
+    // }}}
 }
