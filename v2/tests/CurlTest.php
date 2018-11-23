@@ -47,7 +47,7 @@ class CurlTest extends TestCase
         $wrapper = new CFCurl(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => false
+            'verbose'       => true
         ));
 
         foreach ($this->urls as $url) {
@@ -102,7 +102,7 @@ class CurlTest extends TestCase
         $wrapper = new CFCurl(array(
             'cache'         => false,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => false
+            'verbose'       => true
         ));
 
         foreach ($this->urls as $url) {
