@@ -83,7 +83,7 @@ class CurlTest extends TestCase
 
             $this->assertEquals($url.": "."200", $url.": ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
             $this->assertEquals(true, file_exists($cache_file));
-            $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+            $this->assertEquals(true, strpos(file_get_contents($cache_file), "cf_clearance"));
 
             // Remove the file from cache.
             unlink($cache_file);
