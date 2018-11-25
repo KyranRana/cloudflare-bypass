@@ -35,6 +35,9 @@ class CFCurl extends \CloudflareBypass\CFCore
                 }
             }
         }
+
+        // Enable cookie engine.
+        $ch->setopt( CURLOPT_COOKIELIST, "" );
         
         // Request original page.
         $response           = $ch->exec();
@@ -91,7 +94,7 @@ class CFCurl extends \CloudflareBypass\CFCore
             $uam_response_info      = $ch_copy->getinfo();
 
             // Debug
-            $this->debug( sprintf( "CFCurl 3.1. (try %s  first_attempt: %s) uam page requested with new cURL handle", $try_counter, $first_attempt ) );
+            $this->debug( sprintf( "CFCurl 3.1. (try %s  first_attempt: %s) uam page requested with new cURL handle.  content (base64): %s  context (base64): %s", $try_counter, $first_attempt, base64_encode($uam_response), base64_encode(json_encode($uam_response_info)) ) );
 
 
 
@@ -157,6 +160,8 @@ class CFCurl extends \CloudflareBypass\CFCore
         foreach ( $ch_copy->getInfo( CURLINFO_COOKIELIST ) as $cookie ) {
             $ch->setopt( CURLOPT_COOKIELIST, $cookie );
 
+            $this->debug( sprintf( "CFCurl 4. Setting cookie (%s) on original cURL handle.", $cookie ) );
+
             $cookies[] = $cookie;
         }
 
@@ -167,9 +172,12 @@ class CFCurl extends \CloudflareBypass\CFCore
             $this->cache->store( $components['host'], $cookies );
         }
     
-        // Request actual website.
+        // 5. Request actual website.
+
         $success            = $ch->exec();
         $success_info       = $ch->getinfo();
+
+        $this->debug( sprintf( "CFCurl 5. Requested original page using new cookies. content (base64): %s  context (base64): %s", base64_encode($success), base64_encode(json_encode($success_info)) ) );
 
         return $success;
     }
