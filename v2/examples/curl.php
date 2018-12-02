@@ -5,9 +5,9 @@ use CloudflareBypass\RequestMethod\CFCurl;
 
 $curl_cf_wrapper = new CFCurl(array(
     'max_retries'   => 5,                   // How many times to try and get clearance?
-    'cache'         => true,                // Enable caching?
+    'cache'         => false,               // Enable caching?
     'cache_path'    => __DIR__ . '/cache',  // Where to cache cookies? (Default: system tmp directory)
-    'verbose'       => true                // Enable verbose? (Good for debugging issues - doesn't effect cURL handle)
+    'verbose'       => true                 // Enable verbose? (Good for debugging issues - doesn't effect cURL handle)
 ));
 
 // Get Example: 1
