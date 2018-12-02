@@ -75,7 +75,7 @@ class GuzzleHttpTest extends TestCase
             $opts['http']['header'][] = "host: " . $url_components['host'];
 
             // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->contextCreate( $url, $opts );
+            $stream     = $stream_cf_wrapper->contextCreate( $url, stream_context_create( $opts ) );
             $cookie_jar = CookieJar::fromArray( $stream->getCookiesOriginal(), $url_components['host'] );
 
             $response = $client->request( 'GET', $url, [
@@ -118,7 +118,7 @@ class GuzzleHttpTest extends TestCase
             $opts['http']['header'][] = "host: " . $url_components['host'];
 
             // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->contextCreate( $url, $opts );
+            $stream     = $stream_cf_wrapper->contextCreate( $url, stream_context_create( $opts ) );
             $cookie_jar = CookieJar::fromArray( $stream->getCookiesOriginal(), $url_components['host'] );
 
             $response = $client->request( 'GET', $url, [

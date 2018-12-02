@@ -17,9 +17,11 @@ class CurlTest extends TestCase
         foreach ($this->urls as $url) {
             // Make sure each site is protected by CF.
             $ch = curl_init( $url );
+
             curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
             curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
             curl_setopt( $ch, CURLOPT_HEADER, 1 );
+
             curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0 );
             curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, 0 );
 
@@ -27,7 +29,7 @@ class CurlTest extends TestCase
             $proxy = $this->getProxyServer();
 
             if (isset( $proxy ))
-                curl_setopt( $ch, CURLOPT_PROXY, $proxy );
+               curl_setopt( $ch, CURLOPT_PROXY, $proxy );
 
             curl_setopt( $ch, CURLOPT_USERAGENT, $this->getAgent() );
             curl_exec( $ch );
@@ -63,11 +65,14 @@ class CurlTest extends TestCase
 
             // Bypass each site using CFCurl wrapper.
             $ch = curl_init( $url );
+            
             curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
             curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
             curl_setopt( $ch, CURLOPT_HEADER, 1 );
+            
             curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0 );
             curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, 0 );
+
             curl_setopt( $ch, CURLOPT_HTTPHEADER, [
                 'Proxy-Connection' => null
             ] );
@@ -75,7 +80,7 @@ class CurlTest extends TestCase
             // Set a proxy server if one is available.
             $proxy = $this->getProxyServer();
 
-            if (isset($proxy)) {
+            if (isset( $proxy )) {
                 curl_setopt( $ch, CURLOPT_PROXY, $proxy );
             }
 
@@ -115,6 +120,7 @@ class CurlTest extends TestCase
             curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
             curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
             curl_setopt( $ch, CURLOPT_HEADER, 1 );
+            
             curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0 );
             curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, 0 );
 
