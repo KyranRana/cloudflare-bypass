@@ -26,7 +26,7 @@ abstract class TestCase extends BaseTestCase
     protected $proxyServer;
 
     /**
-     * Fylesystem Cache
+     * Filesystem Cache
      *
      * @var \Symfony\Component\Cache\Simple\FilesystemCache
      */
@@ -96,7 +96,7 @@ abstract class TestCase extends BaseTestCase
                     'GET', 
                     $url, 
                     [
-                        'proxy' => 'tcp://'.$proxyServer,
+                        'proxy'         => 'tcp://'.$proxyServer,
                         'http_errors'   => false,
                     ]
                 );
@@ -182,11 +182,13 @@ abstract class TestCase extends BaseTestCase
 
         $opts = array(
             'http' => array(
-                'method'         => "GET",
-                'header'         => "User-Agent:".$this->getAgent(),
-                'followlocation' => true,
-                'request_fulluri'=> true,
-                'proxy'          => $this->getProxyServer() ? 'tcp://' . $this->getProxyServer() : null,
+                'method'            => "GET",
+                'header'            => [
+                    "User-Agent: ".$this->getAgent()
+                ],
+                'follow_location'   => true,
+                'request_fulluri'   => true,
+                'proxy'             => $this->getProxyServer() ? 'tcp://' . $this->getProxyServer() : null,
             ),
             'curl' => $this->getCurlOptions(),
         );
@@ -202,9 +204,9 @@ abstract class TestCase extends BaseTestCase
     public function getCurlOptions()
     {
         return array(
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_PROXY => $this->getProxyServer()
+            CURLOPT_SSL_VERIFYHOST  => false,
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_PROXY           => $this->getProxyServer()
         );
     }
 }

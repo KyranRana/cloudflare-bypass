@@ -2,7 +2,7 @@
 
 namespace CloudflareBypass\Tests;
  
-use CloudflareBypass\RequestMethod\CFStreamContext;
+use CloudflareBypass\RequestMethod\CFStream;
 
 class StreamContextTest extends TestCase
 {
@@ -30,10 +30,10 @@ class StreamContextTest extends TestCase
     public function test200WithCache()
     {
         // Initialize CFStreamContext wrapper.
-        $wrapper = new CFStreamContext(array(
+        $wrapper = new CFStream(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => false
+            'verbose'       => true
         ));
 
         foreach ($this->urls as $url) {
@@ -47,15 +47,17 @@ class StreamContextTest extends TestCase
 
             // Bypass each site using CFStreamContext wrapper.
             $opts = $this->getOptions();
+            $opts['http']['header'][] = "accept: */*";
+            $opts['http']['header'][] = "host: " . $url_components['host'];
 
-            @file_get_contents($url, false, $wrapper->create($url, $opts));
+            @file_get_contents($url, false, $wrapper->contextCreate($url, $opts));
 
             $status_code = $this->getStatusCodeFromResponseHeader($http_response_header[0]);
 
 
             $this->assertEquals($url.": 200", $url.": ". $status_code);
             $this->assertEquals(true, file_exists($cache_file));
-            $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+            $this->assertEquals(true, strpos(file_get_contents($cache_file), "cf_clearance"));
 
             // Remove the file from cache.
             unlink($cache_file);
@@ -69,10 +71,10 @@ class StreamContextTest extends TestCase
      */
     public function test200WithNoCache()
     {
-        $wrapper = new CFStreamContext(array(
+        $wrapper = new CFStream(array(
             'cache'         => false,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => false
+            'verbose'       => true
         ));
 
         foreach ($this->urls as $url) {
@@ -84,8 +86,10 @@ class StreamContextTest extends TestCase
             $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
 
             $opts = $this->getOptions();
+            $opts['http']['header'][] = "accept: */*";
+            $opts['http']['header'][] = "host: " . $url_components['host'];
 
-            @file_get_contents($url, false, $wrapper->create($url, $opts));
+            @file_get_contents($url, false, $wrapper->contextCreate($url, $opts));
             $status_code = $this->getStatusCodeFromResponseHeader($http_response_header[0]);
 
             $this->assertEquals($url.": 200", $url.": ". $status_code);

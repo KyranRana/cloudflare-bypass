@@ -20,8 +20,8 @@ class GuzzleHttpTest extends TestCase
                 'User-Agent' => $this->getAgent()
             ),
             'verify'        => false,
-            'curl' => $this->getCurlOptions(),
-            'proxy' => 'tcp://'.$this->getProxyServer(),
+            'curl'          => $this->getCurlOptions(),
+            'proxy'         => 'tcp://'.$this->getProxyServer(),
             'http_errors'   => false,
             'debug'         => false
         ];
@@ -59,10 +59,8 @@ class GuzzleHttpTest extends TestCase
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => true,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => false
+            'verbose'       => true
         ));
-
-        $opts = $this->getOptions();
       
         $client = $this->getClient();
 
@@ -72,8 +70,12 @@ class GuzzleHttpTest extends TestCase
 
             $cache_file = __DIR__ . "/../var/cache/" . md5($url_components['host']);
 
+            $opts = $this->getOptions();
+            $opts['http']['header'][] = "accept: */*";
+            $opts['http']['header'][] = "host: " . $url_components['host'];
+
             // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->create($url, $opts);
+            $stream     = $stream_cf_wrapper->contextCreate($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
 
             $response = $client->request('GET', $url, [
@@ -82,7 +84,7 @@ class GuzzleHttpTest extends TestCase
 
             $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
             $this->assertEquals(true, file_exists($cache_file));
-            $this->assertEquals(true, isset(json_decode(file_get_contents($cache_file))->cf_clearance));
+            $this->assertEquals(true, strpos(file_get_contents($cache_file), "cf_clearance"));
 
             // Remove the file from cache.
             unlink($cache_file);
@@ -101,18 +103,21 @@ class GuzzleHttpTest extends TestCase
         $stream_cf_wrapper = new CFStream(array(
             'cache'         => false,
             'cache_path'    => __DIR__."/../var/cache",
-            'verbose'       => false
+            'verbose'       => true
         ));
 
-        $opts = $this->getOptions();
         $client = $this->getClient();
 
         foreach ($this->urls as $url) {
             // Parse url into components.
             $url_components = parse_url($url);
 
+            $opts = $this->getOptions();
+            $opts['http']['header'][] = "accept: */*";
+            $opts['http']['header'][] = "host: " . $url_components['host'];
+
             // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->create($url, $opts);
+            $stream     = $stream_cf_wrapper->contextCreate($url, $opts);
             $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
 
             $response = $client->request('GET', $url, [
