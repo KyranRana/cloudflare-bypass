@@ -1,22 +1,29 @@
 <?php
 namespace CloudflareBypass;
 
-class CFCore extends CFBypass
+use \CloudflareBypass\Util\Logger;
+
+/**
+ * CF Core
+ * Core logic for all request methods.
+ * @author Kyran Rana
+ */
+class CFCore
 {
     /**
-     * Maximum retries allowed.
+     * Maximum retries at bypassing CF.
      * @var integer
      */ 
-    protected $max_retries = 5;
+    protected $max_retries;
 
     /**
-     * Configuration. 
-     * @var array
+     * Verbose mode.
+     * @var bool
      */
-    protected $config;
+    protected $verbose_mode;
 
     /**
-     * Caching mechanism.
+     * Caching mechanism | null
      * @var bool
      */
     protected $cache = null;
@@ -27,8 +34,8 @@ class CFCore extends CFBypass
      *
      * Key                  Sets                                        Definiton
      * -----------------------------------------------------------------------------------------------------------------------------
-     * "cache"              $this->cache_mech (to Storage class)        Caches clearance tokens so subsequent requests are quicker.
-     * "max_retries"        $this->max_retries (to value given)         Maximum number of retries allowed for bypassing CloudFlare.
+     * "cache"              $this->cache (to Storage class)             Caches clearance tokens so subsequent requests are quicker.
+     * "max_retries"        $this->max_retries (to value given)         Maximum number of retries allowed at bypassing CF.
      * "verbose"            $this->verbose (to value given)             Enables verbose mode for chosen request type.
      *
      * @access public
@@ -37,35 +44,14 @@ class CFCore extends CFBypass
      */
     public function __construct( $config = array() )
     {
-        $cache = isset($config['cache']) ? $config['cache'] : true;
-        $cache_path = isset($config['cache_path']) ? $config['cache_path'] : sys_get_temp_dir()."/cf-bypass";
+        if (!isset( $config['cache'] ) || $config['cache'])
+            $this->cache = new Storage( $config['cache_path'] );
 
-        if ($cache === true) {
-            $this->cache = new Storage($cache_path);
-        }
+        $this->verbose_mode = isset( $config['verbose'] ) ? $config['verbose'] : false;
+        $this->max_retries  = isset( $config['max_retries'] ) ? $config['max_retries'] : 5;
 
-        $this->config = $config;
-        $this->verbose = isset($config['verbose']) && $config['verbose'];
-
-        if (isset($config['max_retries'])) {
-            if (!is_numeric($config['max_retries'])) {
-                throw new \ErrorException('"max_retries" should be an integer!');
-            }
-
-            $this->max_retries = $config['max_retries'];
-        }
-
-        $this->debug("VERBOSE: ON");
-    }
-
-    /**
-     * Outputs debug message if verbose mode is enabled.
-     *
-     * @param string $message
-     * @return void
-     */
-    public function debug( $message )
-    {
-        $this->verbose && print_r("* ".$message."\n");
+        // Debug
+        if ($this->verbose_mode)
+            Logger::info("VERBOSE: ON");
     }
 }
