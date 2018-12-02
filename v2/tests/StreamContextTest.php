@@ -16,9 +16,9 @@ class StreamContextTest extends TestCase
 
         foreach ($this->urls as $url) {
 
-            @file_get_contents($url);
+            @file_get_contents( $url );
             
-            $this->assertEquals($http_response_header[0], "HTTP/1.1 503 Service Temporarily Unavailable");
+            $this->assertEquals( $http_response_header[0], "HTTP/1.1 503 Service Temporarily Unavailable" );
         }
     }
 
@@ -39,20 +39,22 @@ class StreamContextTest extends TestCase
         foreach ($this->urls as $url) {
 
             // Parse url into components.
-            $url_components = parse_url($url);
+            $url_components = parse_url( $url );
 
             // Get cache file (path included).
-            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
-            file_exists($cache_file) && unlink($cache_file);
+            $cache_file = __DIR__ . '/../var/cache/' . md5( $url_components['host'] );
+            
+            if (file_exists( $cache_file ))
+                unlink( $cache_file );
 
             // Bypass each site using CFStreamContext wrapper.
             $opts = $this->getOptions();
             $opts['http']['header'][] = "accept: */*";
             $opts['http']['header'][] = "host: " . $url_components['host'];
 
-            @file_get_contents($url, false, $wrapper->contextCreate($url, $opts));
+            @file_get_contents( $url, false, $wrapper->contextCreate( $url, $opts ) );
 
-            $status_code = $this->getStatusCodeFromResponseHeader($http_response_header[0]);
+            $status_code = $this->getStatusCodeFromResponseHeader( $http_response_header[0] );
 
 
             $this->assertEquals($url.": 200", $url.": ". $status_code);
@@ -80,20 +82,21 @@ class StreamContextTest extends TestCase
         foreach ($this->urls as $url) {
 
             // parse url into components.
-            $url_components = parse_url($url);
+            $url_components = parse_url( $url );
 
             // Get cache file (path included).
-            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
+            $cache_file = __DIR__ . '/../var/cache/' . md5( $url_components['host'] );
 
             $opts = $this->getOptions();
             $opts['http']['header'][] = "accept: */*";
             $opts['http']['header'][] = "host: " . $url_components['host'];
 
-            @file_get_contents($url, false, $wrapper->contextCreate($url, $opts));
-            $status_code = $this->getStatusCodeFromResponseHeader($http_response_header[0]);
+            @file_get_contents( $url, false, $wrapper->contextCreate( $url, $opts ) );
+            
+            $status_code = $this->getStatusCodeFromResponseHeader( $http_response_header[0] );
 
-            $this->assertEquals($url.": 200", $url.": ". $status_code);
-            $this->assertEquals(false, file_exists($cache_file));
+            $this->assertEquals( $url.": 200", $url.": ". $status_code );
+            $this->assertEquals( false, file_exists( $cache_file ) );
         }
     }
 
@@ -106,7 +109,7 @@ class StreamContextTest extends TestCase
      */
     public function getStatusCodeFromResponseHeader($header)
     {
-        preg_match_all('#HTTP/\d+\.\d+ (\d+)#', $header, $results);
+        preg_match_all( '#HTTP/\d+\.\d+ (\d+)#', $header, $results );
 
         return $results[1][0];
     }

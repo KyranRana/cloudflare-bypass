@@ -42,9 +42,9 @@ class GuzzleHttpTest extends TestCase
 
         foreach ($this->urls as $url) {
             // Make sure each site is protected by CF.
-            $response = $client->request('GET', $url, []);
+            $response = $client->request( 'GET', $url, [] );
 
-            $this->assertEquals($url.": "."503", $url.": ".$response->getStatusCode());
+            $this->assertEquals( $url.": "."503", $url.": ".$response->getStatusCode() );
         }
     }
 
@@ -68,23 +68,24 @@ class GuzzleHttpTest extends TestCase
             // Parse url into components.
             $url_components = parse_url($url);
 
-            $cache_file = __DIR__ . "/../var/cache/" . md5($url_components['host']);
+            $cache_file = __DIR__ . "/../var/cache/" . md5( $url_components['host'] );
 
             $opts = $this->getOptions();
             $opts['http']['header'][] = "accept: */*";
             $opts['http']['header'][] = "host: " . $url_components['host'];
 
             // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->contextCreate($url, $opts);
-            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
+            $stream     = $stream_cf_wrapper->contextCreate( $url, $opts );
+            $cookie_jar = CookieJar::fromArray( $stream->getCookiesOriginal(), $url_components['host'] );
 
-            $response = $client->request('GET', $url, [
+            $response = $client->request( 'GET', $url, [
                 'cookies' => $cookie_jar,
-            ]);
+            ] );
 
-            $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
-            $this->assertEquals(true, file_exists($cache_file));
-            $this->assertEquals(true, strpos(file_get_contents($cache_file), "cf_clearance"));
+            $this->assertEquals( $url.": "."200", $url.": ".$response->getStatusCode() );
+
+            $this->assertEquals( true, file_exists( $cache_file ) );
+            $this->assertEquals( true, strpos( file_get_contents( $cache_file ), "cf_clearance") );
 
             // Remove the file from cache.
             unlink($cache_file);
@@ -110,25 +111,25 @@ class GuzzleHttpTest extends TestCase
 
         foreach ($this->urls as $url) {
             // Parse url into components.
-            $url_components = parse_url($url);
+            $url_components = parse_url( $url );
 
             $opts = $this->getOptions();
             $opts['http']['header'][] = "accept: */*";
             $opts['http']['header'][] = "host: " . $url_components['host'];
 
             // Bypass each site using CFStream wrapper.
-            $stream     = $stream_cf_wrapper->contextCreate($url, $opts);
-            $cookie_jar = CookieJar::fromArray($stream->getCookiesOriginal(), $url_components['host']);
+            $stream     = $stream_cf_wrapper->contextCreate( $url, $opts );
+            $cookie_jar = CookieJar::fromArray( $stream->getCookiesOriginal(), $url_components['host'] );
 
-            $response = $client->request('GET', $url, [
+            $response = $client->request( 'GET', $url, [
                 'cookies' => $cookie_jar,
-            ]);
+            ] );
 
             // Get cache file (path included).
-            $cache_file = __DIR__ . '/../var/cache/' . md5($url_components['host']);
+            $cache_file = __DIR__ . '/../var/cache/' . md5( $url_components['host'] );
 
-            $this->assertEquals($url.": "."200", $url.": ".$response->getStatusCode());
-            $this->assertEquals(false, file_exists($cache_file));
+            $this->assertEquals( $url.": "."200", $url.": ".$response->getStatusCode() );
+            $this->assertEquals( false, file_exists( $cache_file ) );
         }
     }
 
