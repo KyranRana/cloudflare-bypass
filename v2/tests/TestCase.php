@@ -125,16 +125,21 @@ abstract class TestCase extends BaseTestCase
      */
     public function findProxyServers()
     {
+        // hard-coded list of HA proxies
+        $proxies = [
+            "46.101.228.129:3128",
+            "188.166.47.32:3128",
+            "165.227.23.38:3128",
+            "104.248.168.81:3128",
+            "195.68.133.206:3128",
+            "206.81.0.100:8080",
+            "185.22.174.65:655",
+            "77.242.21.10:8080",
+            "95.215.48.93:8080",
+            "1.10.188.181:51093"
+        ];
 
-        $client = new Client();
-
-        $response = $client->request('GET', 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt');
-
-        $body = (string) $response->getBody();
-
-        preg_match_all("/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\:?([0-9]{1,5})/", $body, $matches);
-
-        return $matches[0];
+        return $proxies;
     }
 
     /**
