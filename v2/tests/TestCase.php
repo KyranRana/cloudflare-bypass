@@ -35,7 +35,7 @@ abstract class TestCase extends BaseTestCase
 	/**
  	 * Set up.
  	 */
-    public function setUp()
+    public function setUpBeforeClass()
     {
         $this->cache = new FilesystemCache('', 3600);
         $this->setProxyServer($this->detectProxyServer());
@@ -190,7 +190,11 @@ abstract class TestCase extends BaseTestCase
                 'request_fulluri'   => true,
                 'proxy'             => $this->getProxyServer() ? 'tcp://' . $this->getProxyServer() : null,
             ),
-            'curl' => $this->getCurlOptions(),
+            'ssl' => array(
+                'verify_peer'       => false,
+                'verify_peer_name'  => false
+            ),  
+            'curl' => $this->getCurlOptions()
         );
 
         return $opts;
