@@ -15,7 +15,6 @@ abstract class TestCase extends BaseTestCase
      * @var string
      */
     protected $urls = [
-        "https://anime47.com",
         "https://predb.me/?search=720p"
     ];
 
