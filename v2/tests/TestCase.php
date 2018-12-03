@@ -35,7 +35,7 @@ abstract class TestCase extends BaseTestCase
 	/**
  	 * Set up.
  	 */
-    public function setUpBeforeClass()
+    public static function setUpBeforeClass()
     {
         $this->cache = new FilesystemCache('', 3600);
         $this->setProxyServer($this->detectProxyServer());
