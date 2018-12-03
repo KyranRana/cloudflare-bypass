@@ -91,7 +91,7 @@ class CFBypasser {
 
             // Debug
             if ($config['verbose_mode'])
-                Logger::info(sprintf( "%s 3.1. (try: %s  first_attempt: %s) uam page requested with new cURL handle.\n\tcontent (base64):\n%s\n\n\tcontext (base64):\n%s\n", $type, $try_counter, $first_attempt, StringFormatter::formatContent( base64_encode($uam_response), "\t", 88 ), StringFormatter::formatContent( base64_encode(json_encode($uam_response_info)), "\t", 88 )));
+                Logger::info(sprintf( "%s 3.1. (try: %s  first_attempt: %s) uam page requested with new cURL handle.\n\tcontext (base64):\n%s\n", $type, $try_counter, $first_attempt, StringFormatter::formatContent( base64_encode(json_encode($uam_response_info)), "\t", 88 )));
 
 
 
@@ -230,7 +230,8 @@ class CFBypasser {
         if ($type === 'CFStreamContext') {
             $success_info = $cf_request_method->getPageInfo();
 
-            Logger::info(sprintf( "%s 5. Returned context.\n\tcontext (base64):\n%s\n", $type, StringFormatter::formatContent( base64_encode(json_encode($success_info)), "\t", 88 ) ));
+            if ($config['verbose_mode'])
+                Logger::info(sprintf( "%s 5. Returned context.\n\tcontext (base64):\n%s\n", $type, StringFormatter::formatContent( base64_encode(json_encode($success_info)), "\t", 88 ) ));
 
             return stream_context_create( $success_info['options'] );
         }
@@ -240,8 +241,7 @@ class CFBypasser {
 
         // Debug
         if ($config['verbose_mode'])
-            Logger::info(sprintf( "%s 5. Requested original page using new cookies.\n\tcontent (base64):\n%s\n\n\tcontext (base64):\n%s\n", $type, StringFormatter::formatContent( base64_encode($success), "\t", 88 ), StringFormatter::formatContent( base64_encode(json_encode($success_info)), "\t", 88 )));
-
+            Logger::info(sprintf( "%s 5. Requested original page using new cookies.\n\tcontext (base64):\n%s\n", $type, StringFormatter::formatContent( base64_encode(json_encode($success_info)), "\t", 88 )));
 
         return $success;
     }
