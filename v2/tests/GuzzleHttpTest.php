@@ -26,7 +26,7 @@ class GuzzleHttpTest extends TestCase
             'debug'         => false
         ];
 
-        $client = new Client($opts);
+        $client = new Client( $opts );
 
         return $client;
     }
@@ -71,14 +71,20 @@ class GuzzleHttpTest extends TestCase
             $cache_file = __DIR__ . "/../var/cache/" . md5( $url_components['host'] );
 
             $opts = $this->getOptions();
-            $opts['http']['header'][] = "accept: */*";
-            $opts['http']['header'][] = "host: " . $url_components['host'];
+
+            $opts['http']['header'][]   = "accept: */*";
+            $opts['http']['header'][]   = "host: " . $url_components['host'];
 
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->contextCreate( $url, stream_context_create( $opts ) );
-            $cookie_jar = CookieJar::fromArray( $stream->getCookiesOriginal(), $url_components['host'] );
+            $opts       = stream_context_get_options( $stream );
 
-            $response = $client->request( 'GET', $url, [
+            $cookies_header   = $this->getCookieHeader( $opts['http']['header'] );
+            $cookies          = $this->getCookiesAsArray( $cookies_header );
+
+            $cookie_jar = CookieJar::fromArray( $cookies, $url_components['host'] );
+
+            $response   = $client->request( 'GET', $url, [
                 'cookies' => $cookie_jar,
             ] );
 
@@ -114,14 +120,20 @@ class GuzzleHttpTest extends TestCase
             $url_components = parse_url( $url );
 
             $opts = $this->getOptions();
-            $opts['http']['header'][] = "accept: */*";
-            $opts['http']['header'][] = "host: " . $url_components['host'];
+
+            $opts['http']['header'][]   = "accept: */*";
+            $opts['http']['header'][]   = "host: " . $url_components['host'];
 
             // Bypass each site using CFStream wrapper.
             $stream     = $stream_cf_wrapper->contextCreate( $url, stream_context_create( $opts ) );
-            $cookie_jar = CookieJar::fromArray( $stream->getCookiesOriginal(), $url_components['host'] );
+            $opts       = stream_context_get_options( $stream );
 
-            $response = $client->request( 'GET', $url, [
+            $cookies_header   = $this->getCookieHeader( $opts['http']['header'] );
+            $cookies          = $this->getCookiesAsArray( $cookies_header );
+
+            $cookie_jar = CookieJar::fromArray( $cookies, $url_components['host'] );
+
+            $response   = $client->request( 'GET', $url, [
                 'cookies' => $cookie_jar,
             ] );
 
@@ -133,4 +145,52 @@ class GuzzleHttpTest extends TestCase
         }
     }
 
+
+    /**
+     * Get cookies header. 
+     *
+     * @access private
+     * @param mixed $headers  Request headers.
+     * @return string  Cookies header.
+     */
+    private function getCookieHeader( $headers ) {
+        if (isset( $headers['cookie'] )) {
+            return $headers['cookie'];
+        }
+
+        if (!is_array( $headers )) {
+            $headers = preg_split( '/\r\n|\n/', $headers );
+        }
+
+        foreach ($headers as $header) {
+            if (stripos( $header, 'cookie' ) !== false) {
+                list( $_, $cookie_value ) = explode( ':', $header );
+
+                return trim( $cookie_value );
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
+     * Get cookies as array.
+     *
+     * @access private
+     * @param string $cookie  Cookie header.
+     * @return array  Cookies as array.
+     */
+    private function getCookiesAsArray( $cookie_string ) {
+        $cookies        = explode( ';', $cookie_string );
+        $new_cookies    = [];
+
+        foreach ($cookies as $cookie) {
+            list( $cookie_name, $cookie_value ) = explode( '=', $cookie );
+
+            $new_cookies[strtolower( $cookie_name )] = strtolower( $cookie_value );
+        }
+
+        return $new_cookies;
+    }
 }

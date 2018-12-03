@@ -79,7 +79,7 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
         foreach ($http_response_header as $header) {
             // set cookie
             if (stripos( $header, 'set-cookie' ) !== false) {
-
+                // extract cookie
                 list( $_, $cookie_value ) = explode( ':', $header );
                 list( $cookie ) = explode( ';', $cookie_value );
 
@@ -157,13 +157,17 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
             return array();
 
         $cookies = array_map(
+            // trim all elements.
             function( $elem ) { 
                 return trim( $elem ); 
             },
+
             explode( ';', $cookie_string ) );
 
         return array_filter( 
-            $cookies,            
+            $cookies,
+
+            // ignore empty elements.
             function( $elem ){
                 return strlen( $elem ) > 0;
             } );
@@ -220,6 +224,8 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
                 // string
                 $headers = array_filter( 
                     preg_split( '/\r\n|\n/', $headers ),
+
+                    // ignore empty elements
                     function( $elem ){
                         return strlen( $elem ) > 0;
                     } );
@@ -420,7 +426,9 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
             if (!is_array( $headers )) {
                 // string
                 $headers = array_filter( 
-                    preg_split( '/\r\n|\n/', $headers ), 
+                    preg_split( '/\r\n|\n/', $headers ),
+
+                    // ignore empty elements.
                     function( $elem ) {
                         return strlen( $elem ) > 0;
                     } );
