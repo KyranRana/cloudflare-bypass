@@ -7,10 +7,13 @@ interface RequestMethod {
 
     public function getPage();                                  // Gets page results.
     public function getPageInfo();                              // Gets page headers (http_code, url).
+    
     public function getResource();                              // Gets resource.
     public function getCopyOfResource();                        // Gets copy of resource.
+
     public function getCookies();                               // Gets cookies for current request.
     public function getCookie( $cookie );                       // Gets cookie for current request.
+    
     public function getRequestHeader( $request_header );        // Gets request header.
 
     // }}}
@@ -30,7 +33,7 @@ interface RequestMethod {
 
     // {{{ Showers
 
-    public function showRequestHeaders();                       // Enables request headers to be shown (cURL only)
+    public function showRequestHeaders();                       // Enables request headers to be shown
 
     // }}}
 }

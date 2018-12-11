@@ -120,11 +120,11 @@ class CFBypass
     /**
      * Gets jschl verification code.
      *
-     * @access private
+     * @access public
      * @param string $iuam  CF IUAM page.
      * @return string  jschl verification code.
      */
-    private static function getJschlVC( $iuam )
+    public static function getJschlVC( $iuam )
     {
         preg_match( '/name="jschl_vc" +value="(.+?)"/', $iuam, $matches );
 
@@ -135,11 +135,11 @@ class CFBypass
     /**
      * Gets jschl pass.
      * 
-     * @access private
+     * @access public
      * @param string $iuam  CF IUAM page.
      * @return string  jschl pass.
      */
-    private static function getJschlPass( $iuam ) 
+    public static function getJschlPass( $iuam ) 
     {
         preg_match( '/name="pass" +value="(.+?)"/', $iuam, $matches );
 
@@ -150,11 +150,11 @@ class CFBypass
     /**
      * Gets jschl answer.
      *
-     * @access private
+     * @access public
      * @param string $iuam  CF IUAM page.
      * @return float  jschl answer.
      */
-    private static function getJschlAnswer( $iuam )
+    public static function getJschlAnswer( $iuam )
     {
         // -- 1. Extract JavaScript challenge from IUAM page.
 

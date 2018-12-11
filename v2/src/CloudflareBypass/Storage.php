@@ -11,9 +11,6 @@ class Storage
     protected $path;
 
 
-
-
-
     /**
      * Creates Cache directory if it does NOT exist
      *
