@@ -1,162 +1,232 @@
 <?php
 namespace CloudflareBypass;
 
+use \CloudflareBypass\Util\Logger;
+
+/**
+ * CF Bypass utility.
+ * Bypasses CF (solves JS challenge)
+ * @author Kyran Rana
+ */
 class CFBypass
 {
     /**
-     * Given page content and headers, will check if page is protected by CloudFlare.
+     * Given page content and headers, will check if page is protected by CF.
      * (This method is NOT accurate and may fail in rare cases) 
      *
-     * Response Headers Properties
-     *
-     * Name                 Description
-     * -------------------------------------------
-     * http_code            Response http code
-     *
-     * @access protected
-     * @param string $content Response body
-     * @param array $headers Response headers
+     * @access public
+     * @param string $content  Response body
+     * @param array $headers  Response headers (http_code)
      * @return bool 
      */
-    protected function isProtected($content, $headers)
+    public static function isBypassable( $content, $headers )
     {
-        /*
-         * 1. Cloudflare UAM page always throw a 503
-         */
-        if ((int)$headers['http_code'] !== 503) {
+        // IUAM page should have a 503 error code.
+        if ((int)$headers['http_code'] !== 503)
             return false;
-        }
 
-        /*
-         * 2. Cloudflare UAM page contains the following strings:
-         * - jschl_vc
-         * - pass
-         * - jschl_answer
-         * - /cdn-cgi/l/chk_jschl
-         */
-        if (!(
-            strpos($content, "jschl_vc")                !== false &&
-            strpos($content, "pass")                    !== false &&
-            strpos($content, "jschl_answer")            !== false &&
-            strpos($content, "/cdn-cgi/l/chk_jschl")    !== false
-        )) {
-            return false;
+        /* IUAM page should have the following strings:
+         * - jschl_vc, jschl_answer, pass, /cdn-cgi/l/chk_jschl
+         */ 
+        $required_fields = [ "jschl_vc", "jschl_answer", "pass"];
+
+        foreach ( $required_fields as $field ) {
+            if ( strpos( $content, $field ) === false )
+                return false;
         }
 
         return true;
     }
 
+
     /**
-     * Get clearance link. Given IUAM page contents, will solve JS challenge and return clearance link
-     * e.g. http://test/cdn-cgi/l/chk_jschl?jschl_vc=X&pass=X&jschl_answer=X
+     * Solves JS challenge on the IUAM page and returns the following fields: 
+     * - jschl_vc
+     * - pass
+     * - jschl_answer.
      *
-     * @access protected
-     * @param string $content Response body
-     * @param string $url Request URL
-     * @throws \ErrorException if values for the "jschl_vc" / "pass" inputs CAN NOT be found
-     * @throws \ErrorException if JavaScript arithmetic code CAN NOT be extracted
-     * @throws \ErrorException if PHP evaluation of JavaScript arithmetic code FAILS
-     * @return string Clearance link
+     * @access public
+     * @param string $iuam  CF IUAM page.
+     * @param string $url  Request URL
+     * @param boolean $verbose_mode  TRUE to enable verbose mode.
+     * @throws \ErrorException  if "jschl_vc" and "pass" input values CAN NOT be extracted.
+     * @throws \ErrorException  if JS challenge code CAN NOT be extracted
+     * @throws \ErrorException  if PHP evaluation of JS challenge code FAILS
+     * @return array  jschl_vc, pass, jschl_answer
      */
-    protected function getClearanceLink($content, $url, $context=array())
+    public static function bypass( $iuam, $url, $verbose_mode=false )
     {
-        /*
-         * 1. Mimic waiting process
-         */
-        sleep(4);
+          
+        // -- 1. Wait for 5 seconds.
+
+        sleep(5);
+
+        // Debug
+        if ($verbose_mode)
+            Logger::info("CFBypass 1. Waiting for 4 seconds...");
         
-        $this->debug(sprintf("Bypassing url: %s", $url));
-        
-        /*
-         * 2. Extract "jschl_vc" and "pass" params
-         */
-        preg_match_all('/name="\w+" value="(.+?)"/', $content, $matches);
-        
-        if (!isset($matches[1]) || !isset($matches[1][1])) {
-            throw new \ErrorException(sprintf( 'Unable to fetch jschl_vc and pass values; maybe not protected? content (base64): %s  context (base64): %s', base64_encode($content), base64_encode(json_encode($context)) ));
-        }
-        
-        $params = array();
-        list($params['jschl_vc'], $params['pass']) = $matches[1];
 
 
-        $this->debug(sprintf("jschl_vc: %s", $params['jschl_vc']));
-        $this->debug(sprintf("pass: %s", $params['pass']));
-
-        // Extract CF script tag portion from content.
-        $cf_script_start_pos    = strpos($content, 's,t,o,p,b,r,e,a,k,i,n,g,f,');
-        $cf_script_end_pos      = strpos($content, '</script>', $cf_script_start_pos);
-        $cf_script              = substr($content, $cf_script_start_pos, $cf_script_end_pos-$cf_script_start_pos);
-
-        /*
-         * 3. Extract JavaScript challenge logic
-         */
-        preg_match_all('/:[\/!\[\]+()]+|[-*+\/]?=[\/!\[\]+()]+/', $cf_script, $matches);
-        
-        if (!isset($matches[0]) || !isset($matches[0][0])) {
-            throw new \ErrorException(sprintf( 'Unable to find javascript challenge logic; maybe not protected? content (base64): %s   context (base64): %s', base64_encode($content), base64_encode(json_encode($context)) ));
-        }
-        
         try {
-            /*
-             * 4. Convert challenge logic to PHP
-             */
-            $php_code = "";
-            foreach ($matches[0] as $js_code) {
-                // [] causes "invalid operator" errors; convert to integer equivalents
-                $js_code = str_replace(array(
-                    ")+(",  
-                    "![]",
-                    "!+[]", 
-                    "[]"
-                ), array(
-                    ").(", 
-                    "(!1)", 
-                    "(!0)", 
-                    "(0)"
-                ), $js_code);
 
-                $php_code .= '$params[\'jschl_answer\']' . ($js_code[0] == ':' ? '=' . substr($js_code, 1) : $js_code) . ';';
-            }
-            
-            /*
-             * 5. Eval PHP and get solution
-             */
-            eval($php_code);
+            // -- 2. Extract "jschl_vc" and "pass" input values.
 
-            // toFixed(10).
-            $params['jschl_answer'] = round($params['jschl_answer'], 10);
+            $jschl_vc   = self::getJschlVC( $iuam );
+            $pass       = self::getJschlPass( $iuam );
 
-            $this->debug(sprintf("jschl_answer: %s", $params['jschl_answer']));
-
-            // Split url into components.
-            $uri = parse_url($url);
-            
-            $query = [];
-
-            if (isset($uri['query'])) {
-                parse_str($uri['query'], $query);
+            if ($jschl_vc === null || $pass === null) {
+                throw new \ErrorException("Unable to fetch \"jschl_vc\" and \"pass\" parameters!");
             }
 
-            // Add host length to get final answer.
-            $params['jschl_answer'] += strlen($uri['host']);
+            // Debug
+            if ($verbose_mode) {
+                Logger::info("CFBypass 2. Fetching parameters...");
+                Logger::info(sprintf( "\t\tjschl_vc:\t%s", $jschl_vc ));
+                Logger::info(sprintf( "\t\tpass:\t\t%s", $pass ));
+            }
 
-            /*
-             * 6. Generate clearance link
-             */
-            $url = sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
-                $uri['scheme'], 
-                $uri['host'], 
-                http_build_query(array_merge($params, $query))
-            );
 
-            $this->debug(sprintf("Generated clearance link: %s", $url));
 
-            return $url;
-        } 
-        catch (\Exception $ex) {
-            // PHP evaluation bug; inform user to report bug
-            throw new \ErrorException(sprintf( "Something went wrong! issue: %s\ncontent (base64): %s  context (base64): %s", $ex->getMessage(), base64_encode($content), base64_encode(json_encode($context)) ));
+            // -- 3. Calculate JS challenge answer.
+
+            $uri = parse_url( $url );
+
+            $jschl_answer = self::getJschlAnswer( $iuam ) + mb_strlen( $uri['host'] );
+
+            // Debug
+            if ($verbose_mode) {
+                Logger::info("CFBypass 3. Calculating JS challenge answer...");
+                Logger::info(sprintf( "\t\tjschl_answer:\t%s", $jschl_answer ));
+            }
+        
+            return array( $jschl_vc, $pass, $jschl_answer );
+
+
+
+        } catch( Exception $ex ) {
+
+            // Debug
+            if ($verbose_mode)
+                Logger::error(sprintf( "CFBypass ERROR: %s", $ex->getMessage() ));
+
+            throw new \ErrorException( $ex );
         }
     }
+
+
+
+    // {{{ Getters
+
+    /**
+     * Gets jschl verification code.
+     *
+     * @access public
+     * @param string $iuam  CF IUAM page.
+     * @return string  jschl verification code.
+     */
+    public static function getJschlVC( $iuam )
+    {
+        preg_match( '/name="jschl_vc" +value="(.+?)"/', $iuam, $matches );
+
+        return isset( $matches[1] ) ? $matches[1] : null;
+    }
+
+
+    /**
+     * Gets jschl pass.
+     * 
+     * @access public
+     * @param string $iuam  CF IUAM page.
+     * @return string  jschl pass.
+     */
+    public static function getJschlPass( $iuam ) 
+    {
+        preg_match( '/name="pass" +value="(.+?)"/', $iuam, $matches );
+
+        return isset( $matches[1] ) ? $matches[1] : null;
+    }
+
+
+    /**
+     * Gets jschl answer.
+     *
+     * @access public
+     * @param string $iuam  CF IUAM page.
+     * @return float  jschl answer.
+     */
+    public static function getJschlAnswer( $iuam )
+    {
+        // -- 1. Extract JavaScript challenge from IUAM page.
+
+        $iuam_jschl = "";
+        
+        preg_match( '/(?<=s,t,o,p,b,r,e,a,k,i,n,g,f,\s)(\w+)={"(\w+)":(.+?)(?=})/', $iuam, $iuam_jschl_def_matches );
+
+        list( $_, $var1, $var2, $code ) = $iuam_jschl_def_matches;
+
+        preg_match_all( '/' . $var1 . '\.' . $var2 . '[+\-*\/]?=.+?;/', $iuam, $iuam_jschl_matches );
+
+        $iuam_jschl .= "\$jschl_answer=$code;\n";
+
+        foreach ( $iuam_jschl_matches[0] as $jschl_match ) {
+            $iuam_jschl .= str_replace( "$var1.$var2", '$jschl_answer', $jschl_match ) . "\n";
+        }
+
+
+
+        // -- 2. Solve JavaScript challenge.
+
+        $iuam_jschl = str_replace( ']+[]', '].""', $iuam_jschl );
+        $iuam_jschl = str_replace( array( '![]', '+[]' ), 0, $iuam_jschl );
+
+        while( preg_match_all( '/\([^()]+\)/', $iuam_jschl, $iuam_jschl_eq_matches ) ) {
+            
+            foreach ( $iuam_jschl_eq_matches[0] as $eq_match ) {
+                if ( strpos( $eq_match, '.""' ) !== false ) {
+                    
+                    $eq_answer = '"' . implode( "", array_map( function($match){
+                        
+                        // Calculate equation and return as string.
+                        return eval('return ' . str_replace( array( '(', ')' ), "", $match ) . ';');
+                        
+                    }, array_filter( explode( '.""', $eq_match ), function($elem){
+                        
+                        // Remove empty strings resulting from split.
+                        return trim(str_replace( array( '(', ')' ), "", $elem )) !== "";
+                    
+                    } ) ) ) . '"';
+                    
+                    $iuam_jschl = str_replace( $eq_match, $eq_answer, $iuam_jschl );
+                    
+                } else {
+                    
+                    if (strpos( $eq_match, '"' ) !== false) {
+                        $eq_answer = implode( '.', array_map( function($match){
+                            
+                            return strpos( $match, '"' ) !== false ? $match : '"' . $match . '"';
+                            
+                        }, explode( '+', $eq_match ) ) );                
+                    } else {
+                        $eq_answer = $eq_match;
+                    }
+
+                    // Calculate equation.
+                    $eq_answer  = eval('return ' . str_replace( array( '(', ')' ), "", $eq_answer ) . ';');
+                    
+                    $iuam_jschl = str_replace( $eq_match, $eq_answer, $iuam_jschl );
+            
+                }
+            }
+        }
+
+
+
+        // -- 3. Get JavaScript answer.
+
+        eval( $iuam_jschl );
+
+        return round( $jschl_answer, 10 );
+    }
+
+    // }}}
 }

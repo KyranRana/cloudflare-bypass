@@ -10,20 +10,20 @@ class Storage
      */
     protected $path;
 
+
     /**
      * Creates Cache directory if it does NOT exist
      *
      * @access public
      * @throws \ErrorException if cache directory CAN NOT be created
      */
-    public function __construct($path)
+    public function __construct( $path )
     {
         $this->path = $path;
 
         // Suffix path with forward-slash if not done already.
-        if (substr($this->path, -1) !== "/") {
+        if (substr( $this->path, -1 ) !== "/")
             $this->path .= "/";
-        }
 
         $this->createBaseFolder();
     }
@@ -35,11 +35,9 @@ class Storage
      */
     public function createBaseFolder()
     {
-        if (!is_dir($this->path)) {
-            if (!mkdir($this->path, 0755, true)) {
-                throw new \ErrorException('Unable to create Cache directory!');
-            }
-        }
+        if (!is_dir( $this->path ))
+            if (!mkdir( $this->path, 0755, true ))
+                throw new \ErrorException( 'Unable to create Cache directory!' );
     }
 
     /**
@@ -50,23 +48,22 @@ class Storage
      * @throws \ErrorException if $site_host IS empty
      * @return array Clearance tokens or FALSE
      */
-    public function fetch($site_host)
+    public function fetch( $site_host )
     {
-        if (trim($site_host) === "") {
+        if (trim( $site_host ) === "")
             throw new \ErrorException("Site host should not be empty!");
-        }
 
         // Construct cache file endpoint.
-        $file = md5($site_host);
+        $file = md5( $site_host );
 
-        if (!file_exists($this->path . $file)) {
-            if (preg_match('/^www./', $site_host)) {
-                $file = md5(substr($site_host, 4));
+        if (!file_exists( $this->path . $file )) {
+            if (preg_match( '/^www./', $site_host )) {
+                $file = md5(substr( $site_host, 4 ));
             }
         }
 
-        if (file_exists($this->path . $file)) {
-            return json_decode(file_get_contents($this->path . $file), true);
+        if (file_exists( $this->path . $file )) {
+            return json_decode( file_get_contents( $this->path . $file ), true );
         }
 
         return false;
@@ -88,17 +85,11 @@ class Storage
      */
     public function store($site_host, $clearance_tokens)
     {
-        if (trim($site_host) === "") {
+        if (trim($site_host) === "")
             throw new \ErrorException("Site host should not be empty!");
-        }
 
-        if (!(
-            is_array($clearance_tokens) && 
-            isset($clearance_tokens['__cfduid']) &&
-            isset($clearance_tokens['cf_clearance'])
-        )) {
-            throw new \ErrorException("Clearance tokens not in a valid format!");
-        }
+        if (!is_array($clearance_tokens))
+            throw new \ErrorException("Clearance tokens is not in an array format!");
 
         // Construct cache file endpoint.
         $filename = $this->path . md5($site_host);
@@ -106,10 +97,9 @@ class Storage
         // Perform data retention duties.
         $this->retention();
 
-        if (!file_put_contents($filename, json_encode($clearance_tokens))) {
-            // Remove file if it exists.
-            if (file_exists($filename)) {
-                unlink($filename);
+        if (!file_put_contents( $filename, json_encode( $clearance_tokens ) )) {
+            if (file_exists( $filename )) {
+                unlink( $filename );
             }
         }
     }
@@ -121,17 +111,15 @@ class Storage
      */
     private function retention()
     {
-        if ($handle = opendir($this->path)) {
-            while (false !== ($file = readdir($handle))) {
+        if ($handle = opendir( $this->path )) {
+            while (false !== ($file = readdir( $handle ))) {
                 // Skip special directories.
-                if ('.' === $file || '..' === $file || strpos($file, '.') === 0) {
+                if ('.' === $file || '..' === $file || strpos( $file, '.' ) === 0)
                     continue;
-                }
         
                 // Delete file if last modified over 24 hours ago.
-                if (time()-filemtime($this->path . "/" . $file) > 86400) {
-                    unlink($this->path . "/". $file);
-                }
+                if (time()-filemtime( $this->path . "/" . $file ) > 86400)
+                    unlink( $this->path . "/". $file );
             }
         }
     }
