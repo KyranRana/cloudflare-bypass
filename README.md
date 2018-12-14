@@ -1,9 +1,10 @@
 # cloudflare-bypass
 [![Build Status](https://travis-ci.org/KyranRana/cloudflare-bypass.svg?branch=master)](https://travis-ci.org/KyranRana/cloudflare-bypass)
 
+Cloudflare Bypass is a PHP library which allows you to bypass the CF UAM page using well known request methods.
 
-A static PHP library which allows you to bypass the CloudFlare UAM page (Under Attack Mode). 
+Currently supported request methods are:
+* cURL
+* Stream Context
 
-This script works by converting the JavaScript challenge code into code understood by the PHP compiling engine. 
-
-Look at /v2/examples for usage examples.
+Refer to the examples folder for usage examples.
