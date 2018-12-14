@@ -27,8 +27,8 @@ Temporary Items
 .apdisk
 
 # Composer
-/v2/vendor/
-/v2/composer.lock
-/v2/var
+vendor
+composer.lock
+var
 
-v2/\.env
+.env
