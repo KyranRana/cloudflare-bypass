@@ -1,31 +1,39 @@
 <?php
 namespace CloudflareBypass\RequestMethod;
 
+/**
+ * Stream context wrapper.
+ * @author Kyran Rana
+ */
 class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
 {
     /**
-     * Response headers of current request.
+     * Response headers.
+     *
      * @var array
      */
     private $response_headers = array();
 
     /**
-     * Request url.
+     * Url.
+     *
      * @var string
      */
     private $url;
 
     /**
-     * Http code of current request.
-     * @var integer
-     */
-    private $http_code;
-
-    /**
      * Stream context.
+     *
      * @var resource
      */
     private $ctx;
+
+    /**
+     * Follow location.
+     *
+     * @var boolean
+     */
+    private $follow;
 
 
 
@@ -35,7 +43,7 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
      * @access public
      * @param string $url  request url
      * @param resource $ctx  stream context
-     * @throws \ErrorException if $ctx is not a valid stream context
+     * @throws \ErrorException  if $ctx is not a valid stream context
      */
     public function __construct( $url, $ctx = null )
     {
@@ -44,6 +52,7 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
     }
 
 
+    // ------------------------------------------------------------------------------------------------
 
     // {{{ Stream Context Functions 
 
@@ -59,7 +68,14 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
         return stream_context_get_options( $this->ctx );
     }
 
-    
+    // }}}
+
+    // ------------------------------------------------------------------------------------------------
+
+    // {{{ Getters
+
+    // {{{ RequestMethod getters
+
     /**
      * Gets page.
      *
@@ -68,29 +84,46 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
      */
     public function getPage()
     {
-        $opts           = $this->getOptions();
-        $http_code      = 0;
+        $opts = $this->getOptions();
 
-        $opts['http']['ignore_errors']      = true;     // fetch contents of 503
-        $opts['http']['request_fulluri']    = true;     // request full uri
+        $opts['http']['ignore_errors']      = true;     // fetch contents of 503.
+        $opts['http']['request_fulluri']    = true;     // request full uri.
+        $opts['http']['follow_location']    = 0;        // disable built-in follow location.
 
         $contents = file_get_contents( $this->url, false, stream_context_create( $opts ) );
 
-        foreach ($http_response_header as $header) {
-            // set cookie
-            if (stripos( $header, 'set-cookie' ) !== false) {
-                // extract cookie
-                list( $_, $cookie_value ) = explode( ':', $header );
-                list( $cookie ) = explode( ';', $cookie_value );
+        // set response headers.
+        $this->response_headers = $http_response_header;
 
-                $this->setCookie( $cookie );
-            }
+        // set cookies.
+        $this->setCookies( array_filter(
+            $this->response_headers,
 
-            // set http code
-            if (stripos( $header, 'HTTP' ) === 0) {
-                preg_match( '/\d{3}/', $header, $matches );
+            // only extract cookies from response headers.
+            function( $elem ) { return stripos( $elem, 'set-cookie' ) !== false; } ) );
 
-                $this->http_code = $matches[0];
+        // follow location logic.
+        if ($this->follow) {
+            if (preg_match( '/301|302|100/', $this->getHttpCode() )) {
+                foreach ($this->response_headers as $header) {
+                    if (stripos( $header, 'location:' ) === 0) {
+                        // fetch redirect url.
+                        $path = trim(preg_replace( '/location:/i', '', $header ));
+                        
+                        preg_match( '/.+?:\/\/.+?(?=\/|$)/', $this->getUrl(), $matches );
+
+                        // a hacky fix.
+                        if ( strpos( $path, "://" ) === false ) {
+                            $this->setUrl( $matches[0] . $path );
+                        } else {
+                            $this->setUrl( $path );
+                        }
+
+                        $this->getPage();
+
+                        break;
+                    }
+                }
             }
         }
 
@@ -99,25 +132,88 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
 
 
     /**
-     * Gets page info.
+     * Gets http code for current request.
      *
      * @access public
-     * @return array
+     * @return integer  http code
      */
-    public function getPageInfo()
+    public function getHttpCode()
     {
-        return [
-            'url'           => $this->url,
-            'http_code'     => $this->http_code,
-            'options'       => $this->getOptions()
-        ];
+        preg_match( '/\d{3}/', $this->response_headers[0], $matches );
+
+        return $matches[0];
     }
 
-    // }}}
+
+    /**
+     * Gets url for current request.
+     *
+     * @access public
+     * @return string  url.
+     */
+    public function getUrl()
+    {
+        return $this->url;
+    }
 
 
+    /**
+     * Gets all cookies for current request.
+     * 
+     * @access public
+     * @return array  all cookies.
+     */
+    public function getCookies()
+    {
+        $cookie_string = $this->getHeader( "cookie" );
 
-    // {{{ Getters
+        if ($cookie_string === null)
+            return array();
+
+        $cookies = array_filter( 
+            array_map(
+                // trim all elements.
+                function( $elem ) { return trim( $elem ); },
+                
+                explode( ';', $cookie_string ) ),
+
+            // ignore empty elements.
+            function( $elem ) { return strlen( $elem ) > 0; } );
+
+
+        $new_cookies = [];
+
+        foreach ($cookies as $cookie) {
+            list( $name, $value ) = explode( '=', $cookie );
+
+            $new_cookies[strtolower( $name )] = sprintf(
+                "Name=%s; Value=%s;",
+
+                $name, $value );
+        }
+
+        return $new_cookies;
+    }
+
+
+    /**
+     * Get cookie set for current request.
+     * 
+     * @access public
+     * @param string $cookie  cookie name.
+     * @return mixed  cookie value | null
+     */
+    public function getCookie( $cookie )
+    {
+        $cookies = $this->getCookies();
+
+        if (isset( $cookies[$cookie] )) {
+            return $cookies[$cookie];
+        }
+
+        return null;
+    }
+
 
     /**
      * Get stream.
@@ -132,111 +228,67 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
 
 
     /**
-     * Gets copy of stream context.
+     * Gets CF stream.
      *
      * @access public
-     * @return resource  Copy of stream context.
+     * @return resource  CF handle.
      */
-    public function getCopyOfResource()
+    public function getCFResource()
     {
-        return new Stream( $this->url, stream_context_create( $this->getOptions() ) );
+        return new Stream( $this->getUrl(), stream_context_create( $this->getOptions() ) );
     }
 
 
     /**
-     * Gets all cookies.
+     * Get request headers for current request.
      *
      * @access public
-     * @return array  All cookies.
+     * @return mixed  request headers | null
      */
-    public function getCookies()
+    public function getRequestHeaders()
     {
-        $cookie_string = $this->getHeader( "cookie" );
+        $options = $this->getOptions();
 
-        if ($cookie_string === null)
-            return array();
+        if (isset( $options['http']['header'] )) {
+            if (is_array( $options['http']['header'] )) {
+                $cookies = [];
 
-        $cookies = array_map(
-            // trim all elements.
-            function( $elem ) { 
-                return trim( $elem ); 
-            },
+                if (isset( $options['http']['header'][0] )) {
+                    // normal array
+                    $cookies = array_filter(
+                        $options['http']['header'],
 
-            explode( ';', $cookie_string ) );
+                        // ignore empty elements.
+                        function( $elem ) { return strlen( $elem ) > 0; } );
 
-        return array_filter( 
-            $cookies,
+                    $cookies[count( $cookies )-1] .= "\n";
 
-            // ignore empty elements.
-            function( $elem ){
-                return strlen( $elem ) > 0;
-            } );
-    }
-
-
-    /**
-     * Get cookie set for current request.
-     * 
-     * @access public
-     * @param string $cookie  Cookie name.
-     * @return mixed  Cookie value | null
-     */
-    public function getCookie( $cookie )
-    {
-        $cookies = $this->getCookies();
-
-        foreach ($cookies as $cookie_string) {
-            if (stripos( $cookie_string, $cookie ) !== false) {
-                list( $cookie_name, $cookie_value ) = explode( '=', $cookie_string );
-
-                return trim( $cookie_value );
-            }
-        }
-
-        return null;
-    }
-
-
-    /**
-     * Get header set for current request.
-     * 
-     * @access public
-     * @param string $header  Header name.
-     * @return mixed  Header value | null
-     */
-    public function getHeader( $header )
-    {
-        $opts = $this->getOptions();
-
-        $header = strtolower( $header );
-
-        if (isset( $opts['http']['header'] )) {
-            if (is_array( $opts['http']['header'] )) {
-                if (isset( $opts['http']['header'][$header] )) {
+                } else {
                     // associative array
-                    return $opts['http']['header'][$header];
+                    $cookies = array_map( 
+                        // convert to string
+                        function( $key ) { return "$key: " . $options['http']['header'][$key]; },
+
+                        array_keys( $options['http']['header'] ) );
+
+                    end( $cookies );                       // move internal pointer to last key
+                    $cookies[key( $cookies )] .= "\n";
+                    reset( $cookies );                     // reset internal pointer to first key (to prevent bugged iterations)
                 }
-            }
 
-            $headers = $opts['http']['header'];
+                return $cookies;
 
-            if (!is_array( $headers )) {
-                // string
-                $headers = array_filter( 
-                    preg_split( '/\r\n|\n/', $headers ),
+            } else {
+                // string form
+                $cookies = array_filter(
+                    preg_split( "/\r\n|\n/", $options['http']['header'] ),
 
-                    // ignore empty elements
-                    function( $elem ){
-                        return strlen( $elem ) > 0;
-                    } );
-            }
+                    // ignore empty elements.
+                    function( $elem ) { return strlen( $elem ) > 0; } );
 
-            foreach ($headers as $header_string) {
-                if (stripos( $header_string, $header ) !== false) {
-                    list( $_, $header_value ) = explode( ':', $header_string );
+                $cookies[count( $cookies )-1] .= "\n";
 
-                    return trim( $header_value );
-                }
+                return $cookies;
             }
         }
 
@@ -255,7 +307,7 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
     {
         $header = strtolower( $header );
 
-        if (strtolower( $header ) === 'user-agent') {
+        if ($header === 'user-agent') {
             return $this->getUserAgent();
         }
 
@@ -264,12 +316,42 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
 
 
     /**
+     * Get response headers for current request.
+     *
+     * @access public
+     * @return array  response headers.
+     */
+    public function getResponseHeaders()
+    {
+        return $this->response_headers;
+    }
+
+    // }}}
+
+
+    /**
+     * Get context for current request.
+     *
+     * @return resource $ctx
+     */
+    public function getContext()
+    {
+        return $this->getResource();
+    }
+
+    // }}}
+
+    // ------------------------------------------------------------------------------------------------
+
+    // {{{ Private Getters
+
+    /**
      * Gets user agent for current request.
      * 
      * @access public
      * @return string  User agent string.
      */
-    public function getUserAgent()
+    private function getUserAgent()
     {
         $opts = $this->getOptions();
 
@@ -280,17 +362,64 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
         }
     }
 
+
+    /**
+     * Get header set for current request.
+     * 
+     * @access public
+     * @param string $header  Header name.
+     * @return mixed  Header value | null
+     */
+    private function getHeader( $header )
+    {
+        $opts = $this->getOptions();
+
+        $header = strtolower( $header );
+
+        if (isset( $opts['http']['header'] )) {
+            if (is_array( $opts['http']['header'] )) {
+                if (isset( $opts['http']['header'][$header] )) {
+                    // associative array
+                    return $opts['http']['header'][$header];
+                }
+            }
+      
+            $headers = array_filter( 
+                ( !is_array( $opts['http']['header'] ) ?
+                    // normal array
+                    preg_split( '/\r\n|\n/', $opts['http']['header'] ) :
+                    
+                    // string form
+                    $opts['http']['header'] ),
+
+                // ignore empty elements
+                function( $elem ) { return strlen( $elem ) > 0; } );
+
+            foreach ($headers as $rheader) {
+                if (stripos( $rheader, $header ) !== false) {
+                    list( $header_name, $header_value ) = explode( ':', $rheader );
+
+                    return trim( $header_value );
+                }
+            }
+        }
+
+        return null;
+    }
+
     // }}}
 
-
+    // ------------------------------------------------------------------------------------------------
 
     // {{{ Setters
+
+    // {{{ RequestMethod setters
 
     /**
      * Sets url for current request.
      *
      * @access public
-     * @param string $url  New url.
+     * @param string $url  new url.
      */
     public function setUrl( $url )
     {
@@ -299,14 +428,30 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
 
 
     /**
-     * Set context for current request.
+     * Set cookie for current request.
      *
      * @access public
-     * @param resource $ctx  New context.
+     * @param string $name  cookie to set.
+     * @param string $value  value for cookie.
+     * @return void
      */
-    public function setContext( $ctx )
+    public function setCookie( $name, $value )
     {
-        $this->ctx = $ctx;
+        $cookies = $this->getCookies();
+
+        $cookies[$name] = $value;
+
+        $new_cookies = implode( " ", array_map( 
+            // extract name and value.
+            function( $elem ) {
+
+                preg_match( '/Name=(.+?); Value=(.+?);/i', $elem, $matches );
+                return $matches[1] . '=' . $matches[2] . ';';
+            
+            },
+            $cookies ) );
+
+        $this->setCookieInContext( $new_cookies );
     }
 
 
@@ -314,69 +459,20 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
      * Set follow location 
      *
      * @access public
-     * @param boolean $follow_location  Follow location.
+     * @param boolean $follow  follow location.
      */
-    public function setFollowLocation( $follow_location )
+    public function setFollowLocation( $follow )
     {
         $opts = $this->getOptions();
 
-        $opts['http']['follow_location'] = $follow_location;
+        $this->follow = $follow;
 
         $this->ctx = stream_context_create( $opts );
     }
 
 
     /**
-     * Set cookie for current request.
-     *
-     * @access public
-     * @param string $cookie  Cookie to set.
-     */
-    public function setCookie( $cookie )
-    {
-        if ($cookie === "")
-            return false;
-
-        $cookies = $this->getCookies();
-
-        list( $tcookie_name, $_ ) = explode( '=', $cookie );
-
-        $cookie_found = false;
-
-        foreach ($cookies as $key => $cookie_string) {
-            if (strpos( $cookie_string, trim( $tcookie_name ) ) !== false) {
-                // cookie found! update cookie!
-                $cookies[$key]  = $cookie;
-                $cookie_found   = true;
-
-                break;
-            }
-        }
-
-        if (!$cookie_found) 
-            // add as a new cookie
-            $cookies[] = $cookie;
-
-        $new_cookie_string = implode( ';', $cookies );
-
-        $this->setCookieInContext( $new_cookie_string );
-    }
-
-
-    /**
-     * Sets verbose mode.
-     * 
-     * @access public
-     * @param boolean $verbose_mode  Verbose mode.
-     */
-    public function setVerboseMode( $verbose_mode )
-    {
-        // Verbose mode needs to be decided...
-    }
-
-
-    /**
-     * Sets request method.
+     * Sets request method for current request.
      * 
      * @access public
      * @param string $method  Request method.
@@ -390,12 +486,42 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
         $this->setContext(stream_context_create( $opts ));
     }
 
+    // }}}
 
     // }}}
 
-
+    // ------------------------------------------------------------------------------------------------
 
     // {{{ Private Setters
+
+    /**
+     * Set context for current request.
+     *
+     * @access public
+     * @param resource $ctx  New context.
+     */
+    private function setContext( $ctx )
+    {
+        $this->ctx = $ctx;
+    }
+
+
+    /**
+     * Sets cookies for current request.
+     *
+     * @access public
+     * @param array $cookies  set-cookie headers.
+     * @return void
+     */
+    private function setCookies( $cookies )
+    {
+        foreach ($cookies as $cookie) {
+            preg_match( '/set\-cookie:\s*(\w+)=(.+?);/i', $cookie, $matches );
+
+            $this->setCookie( $matches[1], 'Name=' . $matches[1] . '; Value=' . $matches[2] . ';' );
+        }
+    }
+
 
     /**
      * Updates cookie in current context.
@@ -412,47 +538,47 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
         if (isset( $opts['http']['header'] )) {
             if (is_array( $opts['http']['header'] )) {
                 if (isset( $opts['http']['header']['cookie'] )) {
-                    // associative array
+                    // associative array.
                     $opts['http']['header']['cookie'] = $cookie;
 
                     $cookie_found = 2;
                 }
             } 
 
-            $headers = $opts['http']['header'];
+            if ($cookie_found !== 2) {
+                $headers = $opts['http']['header'];
 
-            $is_string = false;
+                $is_string = false;
 
-            if (!is_array( $headers )) {
-                // string
-                $headers = array_filter( 
-                    preg_split( '/\r\n|\n/', $headers ),
+                if (!is_array( $headers )) {
+                    // string form.
+                    $headers = array_filter( 
+                        preg_split( '/\r\n|\n/', $headers ),
 
-                    // ignore empty elements.
-                    function( $elem ) {
-                        return strlen( $elem ) > 0;
-                    } );
+                        // ignore empty elements.
+                        function( $elem ) { return strlen( $elem ) > 0; } );
 
-                $is_string = true;
-            }
-
-            foreach ($headers as $key => $header) {
-                if (stripos( $header, 'cookie' ) !== false) {
-                    $headers[$key] = "cookie: $cookie";
-
-                    $cookie_found = 1;
-                    
-                    break;
+                    $is_string = true;
                 }
-            }
 
-            if ($cookie_found === 1) {
-                if ($is_string) {
-                    // string
-                    $opts['http']['header'] = implode( "\r\n", $headers ) . "\r\n";
-                } else {
-                    // normal array
-                    $opts['http']['header'] = $headers;
+                foreach ($headers as $key => $header) {
+                    if (stripos( $header, 'cookie' ) !== false) {
+                        $headers[$key] = "cookie: $cookie";
+
+                        $cookie_found = 1;
+                        
+                        break;
+                    }
+                }
+
+                if ($cookie_found === 1) {
+                    if ($is_string) {
+                        // string form.
+                        $opts['http']['header'] = implode( "\r\n", $headers ) . "\r\n";
+                    } else {
+                        // normal array. 
+                        $opts['http']['header'] = $headers;
+                    }
                 }
             }
 
@@ -477,34 +603,18 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
     {
         if (is_array( $opts['http']['header'] )) {
             if (count( $opts['http']['header'] ) > 0 && !isset( $opts['http']['header'][0] )) {
-                // associative array
+                // associative array.
                 $opts['http']['header']['cookie'] = $cookie;
             } else {
-                // normal array
+                // normal array.
                 $opts['http']['header'][] = "cookie: $cookie";
             }
         } else {
-            // string
+            // string form.
             $opts['http']['header'] .= "cookie: $cookie\r\n";
         }
 
         return $opts;
-    }
-
-    // }}}
-
-
-
-    // {{{ Showers 
-
-    /**
-     * Enables request headers to be shown in info object.
-     * 
-     * @access public
-     */
-    public function showRequestHeaders()
-    {
-        // Not implemented...       
     }
 
     // }}}
