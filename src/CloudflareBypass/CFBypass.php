@@ -16,13 +16,13 @@ class CFBypass
      *
      * @access public
      * @param string $content  Response body
-     * @param array $headers  Response headers (http_code)
+     * @param array $http_code  Response http code
      * @return bool 
      */
-    public static function isBypassable( $content, $headers )
+    public static function isBypassable( $content, $http_code )
     {
         // IUAM page should have a 503 error code.
-        if ((int)$headers['http_code'] !== 503)
+        if ((int)$http_code !== 503)
             return false;
 
         /* IUAM page should have the following strings:
@@ -36,6 +36,36 @@ class CFBypass
         }
 
         return true;
+    }
+
+
+    /**
+     * Assembles clearance link.
+     * 
+     * @access public
+     * @param string $uri  URL components.
+     * @param string $jschl_vc  JSCHL VC value
+     * @param string $pass  Pass value
+     * @param string $jschl_answer  JSCHL answer value
+     */
+    public static function assemble( $uri, $jschl_vc, $pass, $jschl_answer ) {
+        $query = [];
+    
+        if (isset( $uri['query'] ))
+            parse_str( $uri['query'], $query );
+
+        return sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s", 
+            $uri['scheme'], 
+            $uri['host'],
+
+            // add user params and cf params.
+            http_build_query(array_merge( 
+            [
+                'jschl_vc'          => $jschl_vc,
+                'pass'              => $pass, 
+                'jschl_answer'      => $jschl_answer             
+            ], 
+            $query )));;
     }
 
 
@@ -56,7 +86,6 @@ class CFBypass
      */
     public static function bypass( $iuam, $url, $verbose_mode=false )
     {
-          
         // -- 1. Wait for 5 seconds.
 
         sleep(5);
@@ -100,8 +129,6 @@ class CFBypass
             }
         
             return array( $jschl_vc, $pass, $jschl_answer );
-
-
 
         } catch( Exception $ex ) {
 
