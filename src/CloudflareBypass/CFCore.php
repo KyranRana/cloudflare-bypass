@@ -44,6 +44,8 @@ class CFCore
      */
     public function __construct( $config = array() )
     {
+        $config['cache_path'] = isset($config['cache_path']) ? $config['cache_path'] : sys_get_temp_dir()."/cf-bypass";
+        
         if (!isset( $config['cache'] ) || $config['cache'])
             $this->cache = new Storage( $config['cache_path'] );
 
