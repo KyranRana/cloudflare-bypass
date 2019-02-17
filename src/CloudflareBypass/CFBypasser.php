@@ -45,10 +45,10 @@ class CFBypasser {
          */
         if (!CFBypass::isBypassable( $response, $http_code )) {
             if (method_exists( $cf_request_method, 'getContext' )) {
-                return $cf_request_method->getContext();
-            } else {
-                return $response;
+                $response = $cf_request_method->getContext();
             }
+
+            return $response;
         }
 
         // Debug
@@ -86,10 +86,13 @@ class CFBypasser {
              */
             if (!CFBypass::isBypassable( $uam_response, $uam_http_code )) {
                 if (method_exists( $cf_request_method, 'getContext' )) {
-                    return $cf_request_method->getContext();
-                } else {
-                    return $cf_request_method->getPage();
+                    $uam_response = $cf_request_method_copy->getContext();
                 }
+
+                // close copy of cURL handle
+                $cf_request_method_copy->close();
+
+                return $uam_response;
             }
 
             // Debug
@@ -199,6 +202,9 @@ class CFBypasser {
             $cookies[$cookie_name] = $cookie_value;
         }
 
+
+        // close copy of cURL handle
+        $cf_request_method_copy->close();
 
         /* If       caching is enabled
          * Then     store clearance cookies in cache for site     
