@@ -67,144 +67,145 @@ class CFBypasser {
             Logger::info(sprintf( "%s 2. got cloudflare handle.", $type ));
 
 
+        try {
+            // -- 3. Attempt to bypass the CF UAM page.
 
-        // -- 3. Attempt to bypass the CF UAM page.
+            $first_attempt      = true;     // TRUE if its the first time trying to bypass CF.
+            $try_counter        = 0;        // How many times the bypass process has been tried.
 
-        $first_attempt      = true;     // TRUE if its the first time trying to bypass CF.
-        $try_counter        = 0;        // How many times the bypass process has been tried.
+            while ( $try_counter < $config['max_retries'] ) {
 
-        while ( $try_counter < $config['max_retries'] ) {
+                // -- 3.1. Request UAM page again with new handle.
 
-            // -- 3.1. Request UAM page again with new handle.
+                $uam_response   = $cf_request_method_copy->getPage();
+                $uam_http_code  = $cf_request_method_copy->getHttpCode();
+                $uam_url        = $cf_request_method_copy->getUrl();
 
-            $uam_response   = $cf_request_method_copy->getPage();
-            $uam_http_code  = $cf_request_method_copy->getHttpCode();
-            $uam_url        = $cf_request_method_copy->getUrl();
+                /* If       original page is not protected by CF.
+                 * Then     return original page / context.
+                 */
+                if (!CFBypass::isBypassable( $uam_response, $uam_http_code )) {
+                    if (method_exists( $cf_request_method, 'getContext' )) {
+                        $uam_response = $cf_request_method_copy->getContext();
+                    }
 
-            /* If       original page is not protected by CF.
-             * Then     return original page / context.
-             */
-            if (!CFBypass::isBypassable( $uam_response, $uam_http_code )) {
-                if (method_exists( $cf_request_method, 'getContext' )) {
-                    $uam_response = $cf_request_method_copy->getContext();
+                    // close copy of cURL handle
+                    $cf_request_method_copy->close();
+
+                    return $uam_response;
                 }
-
-                // close copy of cURL handle
-                $cf_request_method_copy->close();
-
-                return $uam_response;
-            }
-
-            // Debug
-            if ($config['verbose_mode']) {
-                Logger::info(sprintf(
-                    "%s 3.1. (try: %s  first_attempt: %s) uam page requested with new cURL handle.\n"
-                    . "\trequest headers:\n\t%s\n"
-                    . "\tresponse headers:\n\t%s\n", 
-                    
-                    $type, $try_counter, $first_attempt, implode( "\n\t", $cf_request_method_copy->getRequestHeaders() ), implode( "\n\t", $cf_request_method_copy->getResponseHeaders() ) ));
-            }
-
-
-
-            // -- 3.2. Validate handle has user agent and "__cfduid" cookie set. (only on first attempt)
-
-            /* If       its the first attempt at trying to bypass CF.
-             * And      handle has NO user agent set.
-             * Then     throw exception.
-             */
-            if ($first_attempt && !$cf_request_method_copy->getRequestHeader('User-Agent')) {
-                throw new \ErrorException('You need to set a user agent!');
-            }
-
-            /* If       handle has NO cookie named "__cfduid".
-             * Then     throw exception.
-             */
-            if (!($cfduid_cookie = $cf_request_method_copy->getCookie('__cfduid'))) {
-                throw new \ErrorException('The cookie named "__cfduid" does not exist!');
-            }
-
-            // Debug
-            if ($config['verbose_mode']) {
-                Logger::info(sprintf( "%s 3.2. (try: %s  first_attempt: %s) __cfduid cookie is: %s", $type, $try_counter, $first_attempt, $cfduid_cookie ));
-            }
-
-
-
-            // -- 3.3. Solve the JS challenge on the CF UAM page.
-
-            // Solve JS challange.
-            list( $jschl_vc, $pass, $jschl_answer ) = CFBypass::bypass( $uam_response, $uam_url, $config['verbose_mode'] );
-
-            // Get clearance link.
-            $clearance_link = CFBypass::assemble( parse_url( $uam_url ), $jschl_vc, $pass, $jschl_answer );
-
-            // Access clearance link.
-            $cf_request_method_copy->setUrl( $clearance_link );
-            $cf_request_method_copy->setFollowLocation( true );
-            $cf_request_method_copy->setRequestMethod( "GET" );
-            $cf_request_method_copy->getPage();
-
-            // Debug
-            if ($config['verbose_mode']) {
-                Logger::info(sprintf( 
-                    "%s 3.3. Requesting clearance link: %s\n"
-                    . "\trequest headers:\n\t%s\n"
-                    . "\tresponse headers:\n\t%s\n",
-
-                    $type, $clearance_link, implode( "\n\t", $cf_request_method_copy->getRequestHeaders() ), implode( "\n\t", $cf_request_method_copy->getResponseHeaders() ) ));
-            }
-
-            // Check if we are successful in bypassing cloudflare.
-            if ($cfclearance_cookie = $cf_request_method_copy->getCookie('cf_clearance')) {
 
                 // Debug
                 if ($config['verbose_mode']) {
-                    Logger::info(sprintf( "%s 3.3. (try: %s  first_attempt: %s) cf_clearance cookie is: %s", $type, $try_counter, $first_attempt, $cfclearance_cookie ));
+                    Logger::info(sprintf(
+                        "%s 3.1. (try: %s  first_attempt: %s) uam page requested with new cURL handle.\n"
+                        . "\trequest headers:\n\t%s\n"
+                        . "\tresponse headers:\n\t%s\n", 
+                        
+                        $type, $try_counter, $first_attempt, implode( "\n\t", $cf_request_method_copy->getRequestHeaders() ), implode( "\n\t", $cf_request_method_copy->getResponseHeaders() ) ));
                 }
 
-                break;
+
+
+                // -- 3.2. Validate handle has user agent and "__cfduid" cookie set. (only on first attempt)
+
+                /* If       its the first attempt at trying to bypass CF.
+                 * And      handle has NO user agent set.
+                 * Then     throw exception.
+                 */
+                if ($first_attempt && !$cf_request_method_copy->getRequestHeader('User-Agent')) {
+                    throw new \ErrorException('You need to set a user agent!');
+                }
+
+                /* If       handle has NO cookie named "__cfduid".
+                 * Then     throw exception.
+                 */
+                if (!($cfduid_cookie = $cf_request_method_copy->getCookie('__cfduid'))) {
+                    throw new \ErrorException('The cookie named "__cfduid" does not exist!');
+                }
+
+                // Debug
+                if ($config['verbose_mode']) {
+                    Logger::info(sprintf( "%s 3.2. (try: %s  first_attempt: %s) __cfduid cookie is: %s", $type, $try_counter, $first_attempt, $cfduid_cookie ));
+                }
+
+
+
+                // -- 3.3. Solve the JS challenge on the CF UAM page.
+
+                // Solve JS challange.
+                list( $jschl_vc, $pass, $jschl_answer ) = CFBypass::bypass( $uam_response, $uam_url, $config['verbose_mode'] );
+
+                // Get clearance link.
+                $clearance_link = CFBypass::assemble( parse_url( $uam_url ), $jschl_vc, $pass, $jschl_answer );
+
+                // Access clearance link.
+                $cf_request_method_copy->setUrl( $clearance_link );
+                $cf_request_method_copy->setFollowLocation( true );
+                $cf_request_method_copy->setRequestMethod( "GET" );
+                $cf_request_method_copy->getPage();
+
+                // Debug
+                if ($config['verbose_mode']) {
+                    Logger::info(sprintf( 
+                        "%s 3.3. Requesting clearance link: %s\n"
+                        . "\trequest headers:\n\t%s\n"
+                        . "\tresponse headers:\n\t%s\n",
+
+                        $type, $clearance_link, implode( "\n\t", $cf_request_method_copy->getRequestHeaders() ), implode( "\n\t", $cf_request_method_copy->getResponseHeaders() ) ));
+                }
+
+                // Check if we are successful in bypassing cloudflare.
+                if ($cfclearance_cookie = $cf_request_method_copy->getCookie('cf_clearance')) {
+
+                    // Debug
+                    if ($config['verbose_mode']) {
+                        Logger::info(sprintf( "%s 3.3. (try: %s  first_attempt: %s) cf_clearance cookie is: %s", $type, $try_counter, $first_attempt, $cfclearance_cookie ));
+                    }
+
+                    break;
+                }
+
+                // Set request url back to uam page.
+                $cf_request_method_copy->setUrl( $uam_url );
+
+                // No longer the first attempt.
+                $first_attempt = false;
+
+                $try_counter++;
             }
 
-            // Set request url back to uam page.
-            $cf_request_method_copy->setUrl( $uam_url );
-
-            // No longer the first attempt.
-            $first_attempt = false;
-
-            $try_counter++;
-        }
-
-        /* If       number of times we have tried to bypass CF has exceeded the maximum number of retries.
-         * Then     throw exception.
-         */
-        if ($try_counter === $config['max_retries']) {
-            throw new Exception('Exceeded maximum number of retries at getting cookie "cf_clearance".');
-        }
+            /* If       number of times we have tried to bypass CF has exceeded the maximum number of retries.
+             * Then     throw exception.
+             */
+            if ($try_counter === $config['max_retries']) {
+                throw new Exception('Exceeded maximum number of retries at getting cookie "cf_clearance".');
+            }
 
 
 
-        // 4. Apply clearance cookies to original handle.
+            // 4. Apply clearance cookies to original handle.
 
-        $cookies = [];  // For caching cookies (if enabled).
-
-        // Debug
-        if ($config['verbose_mode'])
-            Logger::info(sprintf( "%s 4. Setting cookies on original handle:", $type ));
-
-        foreach ( $cf_request_method_copy->getCookies() as $cookie_name => $cookie_value ) {
-            $cf_request_method->setCookie( $cookie_name, $cookie_value );
+            $cookies = [];  // For caching cookies (if enabled).
 
             // Debug
             if ($config['verbose_mode'])
-                Logger::info(sprintf( "\t\t%s", $cookie_value ));
+                Logger::info(sprintf( "%s 4. Setting cookies on original handle:", $type ));
 
-            $cookies[$cookie_name] = $cookie_value;
+            foreach ( $cf_request_method_copy->getCookies() as $cookie_name => $cookie_value ) {
+                $cf_request_method->setCookie( $cookie_name, $cookie_value );
+
+                // Debug
+                if ($config['verbose_mode'])
+                    Logger::info(sprintf( "\t\t%s", $cookie_value ));
+
+                $cookies[$cookie_name] = $cookie_value;
+            }
         }
-
-
-        // close copy of cURL handle
-        $cf_request_method_copy->close();
+        finally {
+            // close copy of cURL handle
+            $cf_request_method_copy->close();
+        }
 
         /* If       caching is enabled
          * Then     store clearance cookies in cache for site     
