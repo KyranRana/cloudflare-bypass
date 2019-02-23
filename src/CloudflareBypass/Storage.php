@@ -118,9 +118,12 @@ class Storage
                     continue;
         
                 // Delete file if last modified over 24 hours ago.
-                if (time()-filemtime( $this->path . "/" . $file ) > 86400)
-                    unlink( $this->path . "/". $file );
+                if (time()-filemtime( $this->path . '/' . $file ) > 86400)
+                    unlink( $this->path . '/' . $file );
             }
         }
+
+        // close directory handle.
+        closedir( $handle );
     }
 }
