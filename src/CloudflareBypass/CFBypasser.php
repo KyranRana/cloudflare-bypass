@@ -134,10 +134,10 @@ class CFBypasser {
                 // -- 3.3. Solve the JS challenge on the CF UAM page.
 
                 // Solve JS challange.
-                list( $jschl_vc, $pass, $jschl_answer ) = CFBypass::bypass( $uam_response, $uam_url, $config['verbose_mode'] );
+                list( $s, $jschl_vc, $pass, $jschl_answer ) = CFBypass::bypass( $uam_response, $uam_url, $config['verbose_mode'] );
 
                 // Get clearance link.
-                $clearance_link = CFBypass::assemble( parse_url( $uam_url ), $jschl_vc, $pass, $jschl_answer );
+                $clearance_link = CFBypass::assemble( parse_url( $uam_url ), $s, $jschl_vc, $pass, $jschl_answer );
 
                 // Access clearance link.
                 $cf_request_method_copy->setUrl( $clearance_link );

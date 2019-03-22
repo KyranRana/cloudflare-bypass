@@ -28,7 +28,7 @@ class CFBypass
         /* IUAM page should have the following strings:
          * - jschl_vc, jschl_answer, pass, /cdn-cgi/l/chk_jschl
          */ 
-        $required_fields = [ "jschl_vc", "jschl_answer", "pass"];
+        $required_fields = [ "s", "jschl_vc", "jschl_answer", "pass"];
 
         foreach ( $required_fields as $field ) {
             if ( strpos( $content, $field ) === false )
@@ -43,12 +43,13 @@ class CFBypass
      * Assembles clearance link.
      * 
      * @access public
-     * @param string $uri  URL components.
+     * @param string $uri  URL components
+     * @param string $s S code.
      * @param string $jschl_vc  JSCHL VC value
      * @param string $pass  Pass value
      * @param string $jschl_answer  JSCHL answer value
      */
-    public static function assemble( $uri, $jschl_vc, $pass, $jschl_answer ) {
+    public static function assemble( $uri, $s, $jschl_vc, $pass, $jschl_answer ) {
         $query = [];
     
         if (isset( $uri['query'] ))
@@ -61,6 +62,7 @@ class CFBypass
             // add user params and cf params.
             http_build_query(array_merge( 
             [
+                's'                 => $s, 
                 'jschl_vc'          => $jschl_vc,
                 'pass'              => $pass, 
                 'jschl_answer'      => $jschl_answer             
@@ -98,8 +100,9 @@ class CFBypass
 
         try {
 
-            // -- 2. Extract "jschl_vc" and "pass" input values.
+            // -- 2. Extract "s", "jschl_vc" and "pass" input values.
 
+            $s          = self::getSCode( $iuam );
             $jschl_vc   = self::getJschlVC( $iuam );
             $pass       = self::getJschlPass( $iuam );
 
@@ -110,6 +113,7 @@ class CFBypass
             // Debug
             if ($verbose_mode) {
                 Logger::info("CFBypass 2. Fetching parameters...");
+                Logger::info(sprintf( "\t\ts:\t%s", $s ));
                 Logger::info(sprintf( "\t\tjschl_vc:\t%s", $jschl_vc ));
                 Logger::info(sprintf( "\t\tpass:\t\t%s", $pass ));
             }
@@ -128,7 +132,7 @@ class CFBypass
                 Logger::info(sprintf( "\t\tjschl_answer:\t%s", $jschl_answer ));
             }
         
-            return array( $jschl_vc, $pass, $jschl_answer );
+            return array( $s, $jschl_vc, $pass, $jschl_answer );
 
         } catch( Exception $ex ) {
 
@@ -143,6 +147,21 @@ class CFBypass
 
 
     // {{{ Getters
+
+    /**
+     * Gets s code
+     *
+     * @access public
+     * @param string $iuam  CF IUAM page.
+     * @return string s code.
+     */
+    public static function getSCode( $iuam )
+    {
+        preg_match( '/name="s" +value="(.+?)"/', $iuam, $matches );
+
+        return isset( $matches[1] ) ? $matches[1] : null;
+    }
+
 
     /**
      * Gets jschl verification code.
