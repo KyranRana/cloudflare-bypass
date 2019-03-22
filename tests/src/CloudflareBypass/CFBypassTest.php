@@ -515,7 +515,8 @@ CFBYPASS5
             'http://testdomain.com/cdn-cgi/l/chk_jschl?jschl_vc=91e0ad10cd7cef20bbdd3a0413921509&pass=1543248141.789-bvBJN6wcyM&jschl_answer=-5.0613261468',
             
             CFBypass::assemble( 
-              parse_url( 'http://testdomain.com' ), 
+              parse_url( 'http://testdomain.com' ),
+              null,
               '91e0ad10cd7cef20bbdd3a0413921509', 
               '1543248141.789-bvBJN6wcyM', 
               -5.0613261468 ),
@@ -526,7 +527,8 @@ CFBYPASS5
             'http://testdomain.com/cdn-cgi/l/chk_jschl?jschl_vc=931aafe1deb01a2a49e458d9e2762314&pass=543248270.485-G0Sbn%2F%2FGYA&jschl_answer=29.0099192745&hello=world',
 
             CFBypass::assemble( 
-                parse_url( 'http://testdomain.com/page/?hello=world' ), 
+                parse_url( 'http://testdomain.com/page/?hello=world' ),
+                null,
                 '931aafe1deb01a2a49e458d9e2762314', 
                 '543248270.485-G0Sbn//GYA', 
                 29.0099192745 ),
@@ -537,7 +539,8 @@ CFBYPASS5
             'https://host.anotherdomain.com/cdn-cgi/l/chk_jschl?jschl_vc=9d49e9c975355165894d03f27226effe&pass=1543248141.789-bvB%2B%2F%2FwcyM&jschl_answer=-1.0155658241&another=test&hello=world',
 
             CFBypass::assemble( 
-                parse_url( 'https://host.anotherdomain.com/?another=test&hello=world' ), 
+                parse_url( 'https://host.anotherdomain.com/?another=test&hello=world' ),
+                null, 
                 '9d49e9c975355165894d03f27226effe', 
                 '1543248141.789-bvB+//wcyM', 
                 -1.0155658241 ),
@@ -549,6 +552,7 @@ CFBYPASS5
 
             CFBypass::assemble(
                 parse_url( 'https://host.anotherdomain.com/?another=%20test&hello=%2B%2F' ),
+                null,
                 'a486343c00dce8c1ce7401fdf3fe1606',
                 '1543248348.791-RrZS6BYv32',
                 3.3229504215 ),
@@ -559,6 +563,7 @@ CFBYPASS5
 
             CFBypass::assemble(
                 parse_url( 'https://host.anotherdomain.com/?this=is&a=test&and=cool' ),
+                null,
                 '689a32cc75c5857a4e037bbdf96962d9',
                 '1543248270.485-G0SbnXYGYA',
                 -8.5415482744 ),
