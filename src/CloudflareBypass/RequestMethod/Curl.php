@@ -111,7 +111,11 @@ class Curl implements \CloudflareBypass\Base\RequestMethod\RequestMethod
      */
     public function close()
     {
-        curl_close( $this->ch );
+        if ($this->ch != null) {
+            curl_close( $this->ch );
+        }
+        
+        $this->ch = null;
     }
 
     // }}}
