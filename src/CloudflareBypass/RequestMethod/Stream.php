@@ -68,6 +68,17 @@ class Stream implements \CloudflareBypass\Base\RequestMethod\RequestMethod
         return stream_context_get_options( $this->ctx );
     }
 
+
+    /**
+     * Closes request.
+     *
+     * @access public
+     */
+    public function close()
+    {
+        // Not implemented...
+    }
+
     // }}}
 
     // ------------------------------------------------------------------------------------------------
