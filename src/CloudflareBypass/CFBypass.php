@@ -156,7 +156,7 @@ class CFBypass
      * @param string name  input name
      * @return string  value.
      */
-    public function getInputValue( $iuam, $name )
+    public static function getInputValue( $iuam, $name )
     {
         preg_match( '/name="' . $name . '" +value="(.+?)"/', $iuam, $matches );
 
