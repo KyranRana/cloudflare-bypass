@@ -102,9 +102,9 @@ class CFBypass
 
             // -- 2. Extract "s", "jschl_vc" and "pass" input values.
 
-            $s          = self::getSCode( $iuam );
-            $jschl_vc   = self::getJschlVC( $iuam );
-            $pass       = self::getJschlPass( $iuam );
+            $s          = self::getInputValue( $iuam, 's' );
+            $jschl_vc   = self::getInputValue( $iuam, 'jschl_vc' );
+            $pass       = self::getInputValue( $iuam, 'pass' );
 
             if ($jschl_vc === null || $pass === null) {
                 throw new \ErrorException("Unable to fetch \"jschl_vc\" and \"pass\" parameters!");
@@ -149,45 +149,16 @@ class CFBypass
     // {{{ Getters
 
     /**
-     * Gets s code
+     * Get input value.
      *
      * @access public
      * @param string $iuam  CF IUAM page.
-     * @return string s code.
+     * @param string name  input name
+     * @return string  value.
      */
-    public static function getSCode( $iuam )
+    public function getInputValue( $iuam, $name )
     {
-        preg_match( '/name="s" +value="(.+?)"/', $iuam, $matches );
-
-        return isset( $matches[1] ) ? $matches[1] : null;
-    }
-
-
-    /**
-     * Gets jschl verification code.
-     *
-     * @access public
-     * @param string $iuam  CF IUAM page.
-     * @return string  jschl verification code.
-     */
-    public static function getJschlVC( $iuam )
-    {
-        preg_match( '/name="jschl_vc" +value="(.+?)"/', $iuam, $matches );
-
-        return isset( $matches[1] ) ? $matches[1] : null;
-    }
-
-
-    /**
-     * Gets jschl pass.
-     * 
-     * @access public
-     * @param string $iuam  CF IUAM page.
-     * @return string  jschl pass.
-     */
-    public static function getJschlPass( $iuam ) 
-    {
-        preg_match( '/name="pass" +value="(.+?)"/', $iuam, $matches );
+        preg_match( '/name="' . $name . '" +value="(.+?)"/', $iuam, $matches );
 
         return isset( $matches[1] ) ? $matches[1] : null;
     }

@@ -577,10 +577,10 @@ CFBYPASS5
      *
      * @return void
      */
-    public function testGetJschlVc() {
+    public function testGetInputValueJschlVc() {
         foreach (self::$bypass_files as $name => $file) {
             $this->assertSame( 
-              $file['jschl_vc'], CFBypass::getJschlVC( $file['file'] ), 
+              $file['jschl_vc'], CFBypass::getInputValue( $file['file'], 'jschl_vc' ), 
 
               sprintf( 'CFBypass::testGetJschlVc -> jschl vc does not match for %s', $name ) );
         }
@@ -592,10 +592,10 @@ CFBYPASS5
      *
      * @return void
      */
-    public function testGetJschlPass() {
+    public function testGetInputValuePass() {
         foreach (self::$bypass_files as $name => $file) {
             $this->assertSame( 
-              $file['pass'], CFBypass::getJschlPass( $file['file'] ), 
+              $file['pass'], CFBypass::getInputValue( $file['file'], 'pass' ), 
 
               sprintf( 'CFBypass::testGetJschlPass -> should not match for %s', $name ) );
         }
