@@ -9,6 +9,18 @@ namespace CloudflareBypass\Base\RequestMethod;
  */
 interface RequestMethod {
 
+    // {{{ Misc
+
+    /**
+     * Closes the current request.
+     *
+     * @access public
+     */
+    public function close();
+
+
+    // ------------------------------------------------------------------------------------------------
+
     // {{{ Getters
 
     /**
