@@ -227,7 +227,7 @@ class CFBypasser {
         if (method_exists( $cf_request_method, 'getContext' )) {
             
             // Debug
-            if (isset($config['verbose_mode'])) {
+            if (isset($config['verbose_mode']) && $config['verbose_mode']) {
                 Logger::info(sprintf( "%s 5. Returned context", $type ));
             }
 
