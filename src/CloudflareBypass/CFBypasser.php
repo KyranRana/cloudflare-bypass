@@ -179,7 +179,7 @@ class CFBypasser {
              * Then     throw exception.
              */
             if ($try_counter === $config['max_retries']) {
-                throw new Exception('Exceeded maximum number of retries at getting cookie "cf_clearance".');
+                throw new \ErrorException('Exceeded maximum number of retries at getting cookie "cf_clearance".');
             }
 
 
