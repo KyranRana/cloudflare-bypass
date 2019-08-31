@@ -7,7 +7,7 @@ jobs:
     working_directory: ~/CloudflareBypass
     steps:
       - checkout
-      - run: sudo docker-php-ext-install zip json
+      - run: sudo docker-php-ext-install zip json bcmath
       - run: sudo composer self-update
       - restore_cache: # special step to restore the dependency cache if `composer.lock` does not change
           keys:
