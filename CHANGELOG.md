@@ -1,4 +1,3 @@
-
 v3.0.0
 
 - Refactored Cloudflare Bypass again due to an update breaking previous versions.

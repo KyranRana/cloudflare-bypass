@@ -1,5 +1,7 @@
 # Cloudflare Bypass
 
+[![CircleCI](https://circleci.com/gh/KyranRana/cloudflare-bypass.svg?style=svg)](https://circleci.com/gh/KyranRana/cloudflare-bypass)
+
 A new and improved PHP library which bypasses the Cloudflare IUAM page using cURL.
 
 
@@ -20,24 +22,8 @@ executes it - handling the IUAM page if it appears.
 Method definition:
   
 ```
-
 CFCurlImpl->exec(resource $curlHandle, UAMOptions $uamOptions)
-
-    Parameters:
-        $curlHandle -> cURL Handle
-        $uamOptions -> Extra UAM options
-        
-            -> getDelay()
-            -> setDelay(int delay)                  // number of seconds to wait before requesting clearance
-            
-            -> isVerbose()
-            -> setVerbose(bool verbose)             // TRUE to display extra debug about the bypass process
-            
-            -> getExtraHeaders()
-            -> setExtraHeaders(array headers)       // Use this option to specify extra headers instead of CURLOPT_HTTPHEADER
-
 ``` 
-
 
 Example:
 
@@ -58,9 +44,9 @@ curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_1
 $cfCurl = new CFCurlImpl();
 
 $cfOptions = new UAMOptions();
-// $cfOptions->setVerbose(true);
-// $cfOptions->setDelay(5);
-// $cfOptions->setExtraHeaders(["header: value"])
+// $cfOptions->setVerbose(true);                        // Enable verbose 
+// $cfOptions->setDelay(5);                             // Set delay before requesting clearance
+// $cfOptions->setExtraHeaders(["header: value"]);      // Set extra headers (use this instead of CURLOPT_HTTPHEADER)
 
 $page = $cfCurl->exec($ch, $cfOptions);
 
