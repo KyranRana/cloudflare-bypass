@@ -1,6 +1,5 @@
 <?php
 
-
 use CloudflareBypass\Model\UAM\UAMPageAttributes;
 use CloudflareBypass\Model\UAM\UAMPageFormParams;
 use PHPUnit\Framework\TestCase;
