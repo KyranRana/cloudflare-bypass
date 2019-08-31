@@ -139,6 +139,8 @@ class CFCurlImpl implements CFCurl
         curl_setopt($cloneCurlHandle, CURLOPT_COOKIELIST, "");
 
         if ($verbose) {
+            curl_setopt($cloneCurlHandle, CURLOPT_VERBOSE, $verbose);
+
             if (!$keepHandle) {
                 printf("%s [UAM] 1. Set up copy of existing cURL handle with correct settings\r\n", $logPrefix);
             } else {
