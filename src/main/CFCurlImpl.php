@@ -115,14 +115,13 @@ class CFCurlImpl implements CFCurl
 
         $url = curl_getinfo($curlHandle, CURLINFO_EFFECTIVE_URL);
 
-        // 1.1 remove problematic ciphers which cause captcha page
-
-        $scheme = parse_url($url, PHP_URL_SCHEME);
-
         curl_setopt($cloneCurlHandle, CURLOPT_AUTOREFERER, true);
         curl_setopt($cloneCurlHandle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, array_merge(self::DEFAULT_HEADERS, $uamOptions->getExtraHeaders()));
 
+        // 1.1 remove problematic ciphers which cause captcha page
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
 
         if ($scheme === "https") {
             curl_setopt($cloneCurlHandle, CURLOPT_SSL_CIPHER_LIST, implode(":", self::DEFAULT_CIPHERS));
