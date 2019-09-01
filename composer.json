@@ -13,7 +13,7 @@
   "require": {
     "php": "^7.3",
     "myclabs/php-enum": "^1.7",
-    "KyranRana/simple-javascript-compilation": "^0.1.0",
+    "KyranRana/simple-javascript-compilation": "^0.2.0",
     "ext-curl": "*",
     "ext-json": "*",
     "ext-bcmath": "*"

@@ -52,7 +52,12 @@ class UAMPageFormParams
         $ctx->setCtxFunc('g', 'SimpleJavaScriptCompilation\Model\FunctionMap\GlobalFunctionMap::stringFromCharCode');
 
         $ctx->setCtxVar('t', new CustomString(new DataType(['value' => '"' . $pageAttributes->getHost() . '"'])));
-        $ctx->setCtxVar('k', ExpressionInterpreterImpl::instance()->interpretExpression($codeSnippets->getSecondaryChallengeCode(), new Context()));
+
+        $secondaryChallengeCode = $codeSnippets->getSecondaryChallengeCode();
+
+        if ($secondaryChallengeCode !== "") {
+            $ctx->setCtxVar('k', ExpressionInterpreterImpl::instance()->interpretExpression($secondaryChallengeCode, new Context()));
+        }
 
         $ctx = DeclarationInterpreterImpl::instance()->interpretDeclarations($codeSnippets->getChallengeCode(), $ctx);
 
