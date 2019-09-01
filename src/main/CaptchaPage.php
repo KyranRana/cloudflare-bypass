@@ -14,7 +14,7 @@ abstract class CaptchaPage
     public static function isCaptchaPageForCurl(string $page, array $info)
     {
         return
-            $info['http_code'] === 503
+            $info['http_code'] === 403
             && strpos($page, "captcha") !== false;
     }
 
