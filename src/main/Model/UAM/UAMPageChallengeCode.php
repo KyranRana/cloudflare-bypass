@@ -43,7 +43,9 @@ class UAMPageChallengeCode
         $code = str_replace("var s,t,o,p,b,r,e,a,k,i,n,g,f, ", "", $code);
         $code = preg_replace("/e = function\(s\) {(.|\\n)+?};/", "", $code);
         $code = preg_replace("/(t|a|f|r|o|g) = [^;]+;/", "", $code);
-        $code = preg_replace("/(?<![a-zA-Z])(t|f|a)\.[^;]+;/", "", $code);
+        $code = str_replace("a.value", "answer", $code);
+        $code = preg_replace('/t\.innerHTML="[^"]+";/', "", $code);
+        $code = str_replace(["f.action += location.hash;", "f.submit()"], "", $code);
         $code = str_replace("'; 121'", "", $code);
         preg_match("/(\w+)={\"([^\"]+)\":/", $code, $matches);
 
@@ -64,6 +66,11 @@ class UAMPageChallengeCode
     public static function getSecondaryChallengeCodeFromPage(string $page, string $code): string
     {
         preg_match('/k = \'([^\']+)\';/', $code, $kMatches);
+
+        if (!isset($kMatches[1])) {
+            return "";
+        }
+
         preg_match( '/id="' . $kMatches[1] . '">([^<]+)</', $page, $kElemMatches);
 
         return $kElemMatches[1];
