@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3fa22a0b0eddbc80421b95bc08251535",
+    "content-hash": "ad7ca87964b0d24e5a11c4bb8163c878",
     "packages": [
         {
             "name": "krowinski/bcmath-extended",
@@ -1789,7 +1789,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.3",
+        "php": "^7.2",
         "ext-curl": "*",
         "ext-json": "*",
         "ext-bcmath": "*"
