@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f7ab883ac72f0e01842e2aa33c683f30",
+    "content-hash": "bd8b1b412a566c68332d0d8a7ac0187a",
     "packages": [
         {
             "name": "krowinski/bcmath-extended",
