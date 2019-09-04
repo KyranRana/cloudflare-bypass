@@ -19,13 +19,6 @@ class UAMOptions
     private $verbose = false;
 
     /**
-     * Extra headers.
-     *
-     * @var array Extra headers.
-     */
-    private $extraHeaders = [];
-
-    /**
      * Delay to clearance.
      *
      * @var integer $delay Delay to clearance.
@@ -49,29 +42,9 @@ class UAMOptions
      *
      * @param bool $verbose TRUE to enable verbose mode.
      */
-    public function setVerbose(bool $verbose): void
+    public function setVerbose(bool $verbose)
     {
         $this->verbose = $verbose;
-    }
-
-    /**
-     * Gets extra headers
-     *
-     * @return array Extra headers
-     */
-    public function getExtraHeaders(): array
-    {
-        return $this->extraHeaders;
-    }
-
-    /**
-     * Set extra headers
-     *
-     * @param array Extra headers
-     */
-    public function setExtraHeaders(array $headers)
-    {
-        $this->extraHeaders = $headers;
     }
 
     /**
@@ -89,7 +62,7 @@ class UAMOptions
      *
      * @param int $delay Delay to clearance.
      */
-    public function setDelay(int $delay): void
+    public function setDelay(int $delay)
     {
         $this->delay = $delay;
     }
