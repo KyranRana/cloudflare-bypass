@@ -19,13 +19,10 @@ class CFCurlImpl implements CFCurl
      *
      * @var array
      */
-    private const DEFAULT_HEADERS =
+    const DEFAULT_HEADERS =
         [
-            "Connection: keep-alive",
-            "Upgrade-Insecure-Requests: 1",
-            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
-            "Accept-Language: en-US,en;q=0.9",
-            "Accept-Encoding: gzip, deflate"
+            "accept"            => "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
+            "accept-language"   => "Accept-Language: en-US,en;q=0.9",
         ];
 
     /**
@@ -34,7 +31,7 @@ class CFCurlImpl implements CFCurl
      *
      * @var array
      */
-    private const DEFAULT_CIPHERS =
+    const DEFAULT_CIPHERS =
         [
             "ECDHE+AESGCM",
             "ECDHE+CHACHA20",
@@ -62,15 +59,27 @@ class CFCurlImpl implements CFCurl
      */
     private $uamPage;
 
+    /**
+     * Captcha page
+     *
+     * @var CaptchaPageImpl
+     */
+    private $captchaPage;
+
 
     public function __construct()
     {
-        $this->uamPage = new UAMPageImpl();
+        $this->uamPage          = new UAMPageImpl();
+        $this->captchaPage      = new CaptchaPageImpl();
     }
-
 
     public function exec($curlHandle, UAMOptions $uamOptions, bool $keepHandle = false, string $logPrefix = "--> "): string
     {
+        if (!$keepHandle) {
+            curl_setopt($curlHandle, CURLOPT_VERBOSE, false);
+            curl_setopt($curlHandle, CURLINFO_HEADER_OUT, true);
+        }
+
         $page   = curl_exec($curlHandle);
         $info   = curl_getinfo($curlHandle);
 
@@ -79,8 +88,7 @@ class CFCurlImpl implements CFCurl
         }
 
         if (CaptchaPage::isCaptchaPageForCurl($page, $info)) {
-            // ultimately throws exception
-            (new CaptchaPageImpl())->getClearanceUrl($logPrefix);
+            $page = $this->requestForClearanceFromCaptcha($logPrefix);
         }
 
         return $page;
@@ -113,25 +121,31 @@ class CFCurlImpl implements CFCurl
 
         $cloneCurlHandle = $keepHandle ? $curlHandle : curl_copy_handle($curlHandle);
 
-        $url = curl_getinfo($curlHandle, CURLINFO_EFFECTIVE_URL);
+        $info       = curl_getinfo($curlHandle);
+        $scheme     = parse_url($info['url'], PHP_URL_SCHEME);
+        $host       = parse_url($info['url'], PHP_URL_HOST);
+
+        $httpHeaders = $this->getHttpHeaders($this->getCurlHeadersAsMap($info['request_header']), $host);
+
+        curl_setopt($cloneCurlHandle, CURLINFO_HEADER_OUT, false);
 
         curl_setopt($cloneCurlHandle, CURLOPT_AUTOREFERER, true);
         curl_setopt($cloneCurlHandle, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, array_merge(self::DEFAULT_HEADERS, $uamOptions->getExtraHeaders()));
+        curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, $httpHeaders);
 
         // 1.1 remove problematic ciphers which cause captcha page
 
-        $scheme = parse_url($url, PHP_URL_SCHEME);
-
         if ($scheme === "https") {
             curl_setopt($cloneCurlHandle, CURLOPT_SSL_CIPHER_LIST, implode(":", self::DEFAULT_CIPHERS));
-            curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, array_merge(self::DEFAULT_HEADERS,
-                $uamOptions->getExtraHeaders(),
-                [
-                    "sec-fetch-mode: navigate",
-                    "sec-fetch-site: none",
-                    "sec-fetch-user: ?1"
-                ]));
+
+            if (strpos($info['request_header'], "HTTP/2") !== false) {
+                curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, array_merge($httpHeaders,
+                    [
+                        "sec-fetch-mode: navigate",
+                        "sec-fetch-site: none",
+                        "sec-fetch-user: ?1"
+                    ]));
+            }
         }
 
         curl_setopt($cloneCurlHandle,CURLOPT_ENCODING , "gzip");
@@ -190,7 +204,7 @@ class CFCurlImpl implements CFCurl
         curl_setopt($cloneCurlHandle, CURLOPT_FOLLOWLOCATION, false);
         curl_setopt($cloneCurlHandle, CURLOPT_CUSTOMREQUEST, "GET");
 
-        $clearancePage = $this->exec($cloneCurlHandle, $uamOptions, $keepHandle, $logPrefix . " --> ");
+        $clearancePage = $this->exec($cloneCurlHandle, $uamOptions, true, $logPrefix . " --> ");
         $clearanceInfo = curl_getinfo($cloneCurlHandle);
 
         if ($verbose) {
@@ -220,5 +234,75 @@ class CFCurlImpl implements CFCurl
         }
 
         return $keepHandle ? $clearancePage : curl_exec($curlHandle);
+    }
+
+    /**
+     * Request for clearance from captcha page.
+     * - Not implemented yet.
+     *
+     * @param string $logPrefix Log prefix.
+     * @throws \ErrorException
+     */
+    private function requestForClearanceFromCaptcha(string $logPrefix)
+    {
+        $this->captchaPage->getClearanceUrl($logPrefix);
+    }
+
+    /**
+     * Get HTTP headers to send with cURL
+     *
+     * @param array $requestHeaderMap cURL request header map
+     * @param string $host cURL request host
+     * @return array Request headers to send with cURL
+     */
+    private function getHttpHeaders(array $requestHeaderMap, string $host)
+    {
+        $requestHeaders = [];
+        $requestHeaders[] = sprintf("Host: %s", $host);
+        $requestHeaders[] = "Connection: keep-alive";
+        $requestHeaders[] = "Upgrade-Insecure-Requests: 1";
+        $requestHeaders[] = sprintf("User-Agent: %s", $requestHeaderMap['user-agent']);
+        $requestHeaders[] = sprintf("Accept: %s", $requestHeaderMap["accept"] ?? self::DEFAULT_HEADERS['accept']);
+        $requestHeaders[] = sprintf("Accept-Language: %s", $requestHeaderMap["accept-language"] ?? self::DEFAULT_HEADERS['accept-language']);
+        $requestHeaders[] = "Accept-Encoding: gzip, deflate";
+
+        // remove general request headers from map
+
+        unset(
+            $requestHeaderMap["host"],
+            $requestHeaderMap["connection"],
+            $requestHeaderMap["upgrade-insecure-requests"],
+            $requestHeaderMap["user-agent"],
+            $requestHeaderMap["accept"],
+            $requestHeaderMap["accept-language"],
+            $requestHeaderMap["accept-encoding"]
+        );
+
+        foreach ($requestHeaderMap as $header => $value) {
+            $requestHeaders[] = sprintf("%s: %s", $header, $value);
+        }
+
+        return $requestHeaders;
+    }
+
+    /**
+     * Parses cURL request headers into a map.
+     *
+     * @param string $requestHeaders cURL request headers.
+     * @return array cURL request headers as associative array
+     */
+    private function getCurlHeadersAsMap(string $requestHeaders)
+    {
+        $requestHeaders     = explode(PHP_EOL, $requestHeaders);
+        $requestHeaderMap   = [];
+
+        foreach ($requestHeaders as $requestHeader) {
+            if (strpos($requestHeader, ":") !== false) {
+                list($name, $value)                     = explode(":", $requestHeader);
+                $requestHeaderMap[strtolower($name)]    = trim($value);
+            }
+        }
+
+        return $requestHeaderMap;
     }
 }

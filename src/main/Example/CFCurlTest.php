@@ -18,9 +18,13 @@ $cfCurl = new CFCurlImpl();
 $cfOptions = new UAMOptions();
 // $cfOptions->setVerbose(true);
 // $cfOptions->setDelay(5);
-// $cfOptions->setExtraHeaders(["header: value"])
 
-$page = $cfCurl->exec($ch, $cfOptions);
+try {
+    $page = $cfCurl->exec($ch, $cfOptions);
+} catch (ErrorException $ex) {
+    // example of how to handle errors
+    echo "Unknown error -> " . $ex->getMessage();
+}
 
 
 // Want to get clearance cookies ?
