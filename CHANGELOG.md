@@ -1,3 +1,8 @@
+v3.1.0
+
+- Added support for old IUAM challenge page.
+- Refactored CFCurl to send general request headers first. 
+
 v3.0.0
 
 - Refactored Cloudflare Bypass again due to an update breaking previous versions.

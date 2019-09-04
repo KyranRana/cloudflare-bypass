@@ -46,7 +46,6 @@ $cfCurl = new CFCurlImpl();
 $cfOptions = new UAMOptions();
 // $cfOptions->setVerbose(true);                        // Enable verbose 
 // $cfOptions->setDelay(5);                             // Set delay before requesting clearance
-// $cfOptions->setExtraHeaders(["header: value"]);      // Set extra headers (use this instead of CURLOPT_HTTPHEADER)
 
 $page = $cfCurl->exec($ch, $cfOptions);
 
