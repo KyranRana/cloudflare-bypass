@@ -73,7 +73,8 @@ class CFCurlImpl implements CFCurl
         $this->captchaPage      = new CaptchaPageImpl();
     }
 
-    public function exec($curlHandle, UAMOptions $uamOptions, bool $keepHandle = false, string $logPrefix = "--> "): string
+    public function exec($curlHandle, UAMOptions $uamOptions, bool $keepHandle = false, string $logPrefix = "--> ",
+                         array $httpHeaders = []): string
     {
         if (!$keepHandle) {
             curl_setopt($curlHandle, CURLOPT_VERBOSE, false);
@@ -83,8 +84,17 @@ class CFCurlImpl implements CFCurl
         $page   = curl_exec($curlHandle);
         $info   = curl_getinfo($curlHandle);
 
+        if ($httpHeaders === []) {
+            $url  = curl_getinfo($curlHandle, CURLINFO_EFFECTIVE_URL);
+            $host = parse_url($url, PHP_URL_HOST);
+
+            // re-order http headers on original cURL handle.
+            $httpHeaders = $this->getHttpHeaders($this->getCurlHeadersAsMap($info['request_header']), $host);
+            curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $httpHeaders);
+        }
+
         if (UAMPage::isUAMPageForCurl($page, $info)) {
-            $page = $this->requestForClearanceFromIUAM($curlHandle, $uamOptions, $keepHandle, $logPrefix);
+            $page = $this->requestForClearanceFromIUAM($curlHandle, $uamOptions, $keepHandle, $logPrefix, $httpHeaders);
         }
 
         if (CaptchaPage::isCaptchaPageForCurl($page, $info)) {
@@ -109,11 +119,12 @@ class CFCurlImpl implements CFCurl
      * @param UAMOptions $uamOptions UAM options
      * @param bool $keepHandle Keep using same handle (INTERNAL USE)
      * @param string $logPrefix Verbose log prefix (INTERNAL USE)
+     * @param array $httpHeaders Array of HTTP headers (INTERNAL USE)
      * @return string Clearance page response
-     * @throws \ErrorException if JS evaluation fails
      * @throws \ErrorException if captcha page is shown
      */
-    private function requestForClearanceFromIUAM($curlHandle, UAMOptions $uamOptions, bool $keepHandle, string $logPrefix): string
+    private function requestForClearanceFromIUAM($curlHandle, UAMOptions $uamOptions, bool $keepHandle, string $logPrefix,
+                                                 array $httpHeaders): string
     {
         $verbose = $uamOptions->isVerbose();
 
@@ -123,15 +134,10 @@ class CFCurlImpl implements CFCurl
 
         $info       = curl_getinfo($curlHandle);
         $scheme     = parse_url($info['url'], PHP_URL_SCHEME);
-        $host       = parse_url($info['url'], PHP_URL_HOST);
-
-        $httpHeaders = $this->getHttpHeaders($this->getCurlHeadersAsMap($info['request_header']), $host);
 
         curl_setopt($cloneCurlHandle, CURLINFO_HEADER_OUT, false);
-
         curl_setopt($cloneCurlHandle, CURLOPT_AUTOREFERER, true);
         curl_setopt($cloneCurlHandle, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, $httpHeaders);
 
         // 1.1 remove problematic ciphers which cause captcha page
 
@@ -148,7 +154,6 @@ class CFCurlImpl implements CFCurl
             }
         }
 
-        curl_setopt($cloneCurlHandle,CURLOPT_ENCODING , "gzip");
         curl_setopt($cloneCurlHandle, CURLOPT_COOKIELIST, "");
 
         if ($verbose) {
@@ -204,7 +209,7 @@ class CFCurlImpl implements CFCurl
         curl_setopt($cloneCurlHandle, CURLOPT_FOLLOWLOCATION, false);
         curl_setopt($cloneCurlHandle, CURLOPT_CUSTOMREQUEST, "GET");
 
-        $clearancePage = $this->exec($cloneCurlHandle, $uamOptions, true, $logPrefix . " --> ");
+        $clearancePage = $this->exec($cloneCurlHandle, $uamOptions, true, $logPrefix . " --> ", $httpHeaders);
         $clearanceInfo = curl_getinfo($cloneCurlHandle);
 
         if ($verbose) {
@@ -213,9 +218,14 @@ class CFCurlImpl implements CFCurl
             printf("%s [UAM] 5. Clearance info\t-> %s\r\n", $logPrefix, base64_encode(json_encode($clearanceInfo)));
         }
 
-        // 6. attach clearance cookies to original cURL handle
-
         if (!$keepHandle) {
+
+            // 6. attach ordered http headers to original curl handle
+
+            curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $httpHeaders);
+
+            // 6. attach clearance cookies to original curl handle
+
             $clearanceCookies = curl_getinfo($cloneCurlHandle, CURLINFO_COOKIELIST);
 
             foreach ($clearanceCookies as $clearanceCookie) {
@@ -233,7 +243,7 @@ class CFCurlImpl implements CFCurl
             }
         }
 
-        return $keepHandle ? $clearancePage : curl_exec($curlHandle);
+        return $keepHandle ? $clearancePage : $this->exec($curlHandle, $uamOptions, $keepHandle, $logPrefix . " --> ", $httpHeaders);
     }
 
     /**
@@ -264,7 +274,6 @@ class CFCurlImpl implements CFCurl
         $requestHeaders[] = sprintf("User-Agent: %s", $requestHeaderMap['user-agent']);
         $requestHeaders[] = sprintf("Accept: %s", $requestHeaderMap["accept"] ?? self::DEFAULT_HEADERS['accept']);
         $requestHeaders[] = sprintf("Accept-Language: %s", $requestHeaderMap["accept-language"] ?? self::DEFAULT_HEADERS['accept-language']);
-        $requestHeaders[] = "Accept-Encoding: gzip, deflate";
 
         // remove general request headers from map
 
