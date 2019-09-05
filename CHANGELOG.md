@@ -1,4 +1,4 @@
-v3.1.0
+v3.1.0-3.1.2
 
 - Added support for old IUAM challenge page.
 - Refactored CFCurl to send general request headers first. 
