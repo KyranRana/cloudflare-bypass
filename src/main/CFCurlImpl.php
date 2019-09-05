@@ -307,7 +307,11 @@ class CFCurlImpl implements CFCurl
 
         foreach ($requestHeaders as $requestHeader) {
             if (strpos($requestHeader, ":") !== false) {
-                list($name, $value) = explode(":", $requestHeader);
+                $colonPos   = strpos($requestHeader, ':');
+
+                $name       = substr($requestHeader, 0, $colonPos);
+                $value      = substr($requestHeader, $colonPos);
+
                 $requestHeaderMap[strtolower($name)] = trim($value);
             }
         }

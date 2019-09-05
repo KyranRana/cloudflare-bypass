@@ -4,7 +4,7 @@ require "../../../vendor/autoload.php";
 use CloudflareBypass\CFCurlImpl;
 use CloudflareBypass\Model\UAMOptions;
 
-$ch = curl_init("https://multiup.org/download/558fe4e4b9714aae1fd1fdcff3f24b55/_xZ__Grand_Blue_-_10__EFFA84D3_.mp4");
+$ch = curl_init("https://www.extreme-down.xyz/rss.xml?1241878191");
 
 // Want to cache clearance cookies ?
 // curl_setopt($ch, CURLOPT_COOKIEJAR, "cookies.txt");
