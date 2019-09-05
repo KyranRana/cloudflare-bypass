@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f0a9a93f60ab75b130f94ee4603804ee",
+    "content-hash": "6e6960c5ac38b41f488775a92f4b5e6e",
     "packages": [
         {
             "name": "krowinski/bcmath-extended",
@@ -65,16 +65,16 @@
         },
         {
             "name": "kyranrana/simple-javascript-compilation",
-            "version": "0.2.4",
+            "version": "0.2.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/KyranRana/simple-javascript-compilation.git",
-                "reference": "4f53a606861b5ef29f74162449dee79c9dfdc072"
+                "reference": "d8a1529da0deb97f0d1028dc571a28f9bc09fd60"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KyranRana/simple-javascript-compilation/zipball/4f53a606861b5ef29f74162449dee79c9dfdc072",
-                "reference": "4f53a606861b5ef29f74162449dee79c9dfdc072",
+                "url": "https://api.github.com/repos/KyranRana/simple-javascript-compilation/zipball/d8a1529da0deb97f0d1028dc571a28f9bc09fd60",
+                "reference": "d8a1529da0deb97f0d1028dc571a28f9bc09fd60",
                 "shasum": ""
             },
             "require": {
@@ -106,7 +106,7 @@
                 }
             ],
             "description": "Compiles JavaScript code through a series of actions.",
-            "time": "2019-09-05T18:00:18+00:00"
+            "time": "2019-09-05T19:49:34+00:00"
         },
         {
             "name": "matthiasmullie/minify",

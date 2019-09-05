@@ -4,7 +4,7 @@ require "../../../vendor/autoload.php";
 use CloudflareBypass\CFCurlImpl;
 use CloudflareBypass\Model\UAMOptions;
 
-$ch = curl_init("http://predb.me/?search=720p");
+$ch = curl_init("https://multiup.org/download/558fe4e4b9714aae1fd1fdcff3f24b55/_xZ__Grand_Blue_-_10__EFFA84D3_.mp4");
 
 // Want to cache clearance cookies ?
 // curl_setopt($ch, CURLOPT_COOKIEJAR, "cookies.txt");
@@ -18,7 +18,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER,
 $cfCurl = new CFCurlImpl();
 
 $cfOptions = new UAMOptions();
-// $cfOptions->setVerbose(true);
+ $cfOptions->setVerbose(true);
 // $cfOptions->setDelay(5);
 
 try {
