@@ -1,4 +1,11 @@
-v3.1.0-3.1.2
+v3.2.0
+
+- Added logic to order request headers when bypassing using cURL
+- Fixed bug in function which extracts cURL headers from `curl_getinfo`
+- Added retry capabilities if UAM page pops up after requesting clearance
+    - Still need to implement a retry limit.
+
+v3.1.0-3.1.4
 
 - Added support for old IUAM challenge page.
 - Refactored CFCurl to send general request headers first. 
