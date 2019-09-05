@@ -4,28 +4,29 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "eef58187758d33146dc5e8e09cd622d5",
+    "content-hash": "07d1111f93c9d42f239fc18ac8166f76",
     "packages": [
         {
             "name": "krowinski/bcmath-extended",
-            "version": "5.1.0",
+            "version": "4.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/krowinski/bcmath-extended.git",
-                "reference": "bba0abac8aa159cf60ee260c1d85b5897420e3c8"
+                "reference": "d07e18ca3050b872f04bc1cf5a3b8a3b591c6309"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/krowinski/bcmath-extended/zipball/bba0abac8aa159cf60ee260c1d85b5897420e3c8",
-                "reference": "bba0abac8aa159cf60ee260c1d85b5897420e3c8",
+                "url": "https://api.github.com/repos/krowinski/bcmath-extended/zipball/d07e18ca3050b872f04bc1cf5a3b8a3b591c6309",
+                "reference": "d07e18ca3050b872f04bc1cf5a3b8a3b591c6309",
                 "shasum": ""
             },
             "require": {
                 "ext-bcmath": "*",
-                "php": ">=7.1"
+                "php": ">=5.3"
             },
             "require-dev": {
-                "phpunit/phpunit": "^7.5"
+                "php": ">=5.4",
+                "phpunit/phpunit": "^4.8|^5.7|^6.5"
             },
             "type": "library",
             "autoload": {
@@ -60,27 +61,27 @@
                 "round",
                 "scientific-notation"
             ],
-            "time": "2019-09-01T08:58:33+00:00"
+            "time": "2019-04-15T09:15:39+00:00"
         },
         {
             "name": "kyranrana/simple-javascript-compilation",
-            "version": "0.2.3",
+            "version": "0.2.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/KyranRana/simple-javascript-compilation.git",
-                "reference": "d4be8ddc97049acef09473c92011a8a355275a49"
+                "reference": "4f53a606861b5ef29f74162449dee79c9dfdc072"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KyranRana/simple-javascript-compilation/zipball/d4be8ddc97049acef09473c92011a8a355275a49",
-                "reference": "d4be8ddc97049acef09473c92011a8a355275a49",
+                "url": "https://api.github.com/repos/KyranRana/simple-javascript-compilation/zipball/4f53a606861b5ef29f74162449dee79c9dfdc072",
+                "reference": "4f53a606861b5ef29f74162449dee79c9dfdc072",
                 "shasum": ""
             },
             "require": {
                 "ext-bcmath": "*",
                 "ext-curl": "*",
                 "ext-mbstring": "*",
-                "krowinski/bcmath-extended": "^5.1",
+                "krowinski/bcmath-extended": "^4.2.1",
                 "matthiasmullie/minify": "^1.3",
                 "myclabs/php-enum": "^1.6.6",
                 "php": "^7.0"
@@ -105,7 +106,7 @@
                 }
             ],
             "description": "Compiles JavaScript code through a series of actions.",
-            "time": "2019-09-04T20:40:19+00:00"
+            "time": "2019-09-05T18:00:18+00:00"
         },
         {
             "name": "matthiasmullie/minify",
@@ -1791,7 +1792,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.0",
+        "php": "^7.",
         "ext-curl": "*",
         "ext-json": "*",
         "ext-bcmath": "*"
