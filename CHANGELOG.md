@@ -1,4 +1,4 @@
-v3.2.0
+v3.2.0-3.2.1
 
 - Added logic to order request headers when bypassing using cURL
 - Fixed bug in function which extracts cURL headers from `curl_getinfo`

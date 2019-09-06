@@ -310,7 +310,7 @@ class CFCurlImpl implements CFCurl
                 $colonPos   = strpos($requestHeader, ':');
 
                 $name       = substr($requestHeader, 0, $colonPos);
-                $value      = substr($requestHeader, $colonPos);
+                $value      = substr($requestHeader, $colonPos + 1);
 
                 $requestHeaderMap[strtolower($name)] = trim($value);
             }
