@@ -3,7 +3,6 @@
 namespace CloudflareBypass;
 
 use CloudflareBypass\Model\UAM\UAMPageAttributes;
-use CloudflareBypass\Model\UAM\UAMPageFormParams;
 
 /**
  * Class UAMPageImpl
@@ -13,11 +12,11 @@ use CloudflareBypass\Model\UAM\UAMPageFormParams;
  */
 class UAMPageImpl extends UAMPage
 {
-    public function getClearanceUrl(UAMPageAttributes $pageAttributes, UAMPageFormParams $challengeParams): string
+    public function getClearanceUrl(UAMPageAttributes $pageAttributes): string
     {
         return sprintf("%s://%s/cdn-cgi/l/chk_jschl?%s",
             $pageAttributes->getProtocol(),
             $pageAttributes->getHost(),
-            $challengeParams->getQueryString());
+            $pageAttributes->getFormParams()->getQueryString());
     }
 }

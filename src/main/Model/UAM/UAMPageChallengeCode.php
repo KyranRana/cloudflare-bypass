@@ -5,6 +5,7 @@ namespace CloudflareBypass\Model\UAM;
 /**
  * Class UAMPageChallengeCode
  *      - Contains UAM page challenge codes.
+ *      - Part of UAMPageFormParams model.
  *
  * @package CloudflareBypass\Model
  * @author Kyran Rana
@@ -19,12 +20,12 @@ class UAMPageChallengeCode
      */
     public static function getSnippetsFromPage(string $page): UAMPageChallengeCode
     {
-        $challengeCode              = self::getChallengeCodeFromPage($page);
-        $secondaryChallengeCode     = self::getSecondaryChallengeCodeFromPage($page, $challengeCode);
+        $challengeCode          = self::getChallengeCodeFromPage($page);
+        $secondaryChallengeCode = self::getSecondaryChallengeCodeFromPage($page, $challengeCode);
 
-        $challengeCode              = preg_replace("/k = '([^']+)';/", "", $challengeCode);
-        $challengeCode              = str_replace("\n", "", $challengeCode);
-        $challengeCode              = preg_replace("/; +;/", ";", $challengeCode);
+        $challengeCode = preg_replace("/k = '([^']+)';/", "", $challengeCode);
+        $challengeCode = str_replace("\n", "", $challengeCode);
+        $challengeCode = preg_replace("/; +;/", ";", $challengeCode);
 
         return new UAMPageChallengeCode($challengeCode, $secondaryChallengeCode);
     }
@@ -57,7 +58,7 @@ class UAMPageChallengeCode
     }
 
     /**
-     * Gets secondary challenge code from UAM page.
+     * Gets secondary challenge code from UAM page (k).
      *
      * @param string $page UAM page
      * @param string $code UAM page challenge code
@@ -66,14 +67,9 @@ class UAMPageChallengeCode
     public static function getSecondaryChallengeCodeFromPage(string $page, string $code): string
     {
         preg_match('/k = \'([^\']+)\';/', $code, $kMatches);
+        preg_match('/id="' . ($kMatches[1] ?? "") . '">([^<]+)</', $page, $kElemMatches);
 
-        if (!isset($kMatches[1])) {
-            return "";
-        }
-
-        preg_match( '/id="' . $kMatches[1] . '">([^<]+)</', $page, $kElemMatches);
-
-        return $kElemMatches[1];
+        return $kElemMatches[1] ?? "";
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -86,16 +82,16 @@ class UAMPageChallengeCode
     private $challengeCode;
 
     /**
-     * Secondary challenge code
+     * Secondary challenge code (k)
      *
-     * @var string $secondaryChallengeCode Secondary challenge code
+     * @var string $secondaryChallengeCode Secondary c hallenge code
      */
     private $secondaryChallengeCode;
 
     public function __construct(string $challengeCode, string $secondaryChallengeCode)
     {
-        $this->challengeCode            = $challengeCode;
-        $this->secondaryChallengeCode   = $secondaryChallengeCode;
+        $this->challengeCode          = $challengeCode;
+        $this->secondaryChallengeCode = $secondaryChallengeCode;
     }
 
     /**
@@ -109,7 +105,7 @@ class UAMPageChallengeCode
     }
 
     /**
-     * Gets secondary challenge code.
+     * Gets secondary challenge code (k).
      *
      * @return string Secondary challenge code.
      */
