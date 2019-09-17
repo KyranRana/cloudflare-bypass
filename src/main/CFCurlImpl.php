@@ -3,7 +3,6 @@
 namespace CloudflareBypass;
 
 use CloudflareBypass\Model\UAM\UAMPageAttributes;
-use CloudflareBypass\Model\UAM\UAMPageFormParams;
 use CloudflareBypass\Model\UAMOptions;
 
 /**
@@ -15,19 +14,8 @@ use CloudflareBypass\Model\UAMOptions;
 class CFCurlImpl implements CFCurl
 {
     /**
-     * Default Headers
-     *
-     * @var array
-     */
-    const DEFAULT_HEADERS =
-        [
-            "accept"            => "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
-            "accept-language"   => "Accept-Language: en-US,en;q=0.9",
-        ];
-
-    /**
-     * SSL Ciphers
-     * Credits to: https://github.com/Anorov/cloudflare-scrape
+     * SSL ciphers to use when establishing SSL connection.
+     * NOTE: Removes problematic ciphers which cause the captcha page to show up.
      *
      * @var array
      */
@@ -53,6 +41,27 @@ class CFCurlImpl implements CFCurl
         ];
 
     /**
+     * Headers required to bypass CloudFlare.
+     *
+     * @var array
+     */
+    const DEFAULT_HEADERS =
+        [
+            "Upgrade-Insecure-Requests",
+            "User-Agent",
+            "Accept",
+            "Accept-Language"
+        ];
+
+
+    /**
+     * TRUE if clearance is found.
+     *
+     * @var bool
+     */
+    private $clearance;
+
+    /**
      * UAM page
      *
      * @var UAMPageImpl
@@ -60,262 +69,159 @@ class CFCurlImpl implements CFCurl
     private $uamPage;
 
     /**
-     * Captcha page
+     * Logger
      *
-     * @var CaptchaPageImpl
+     * @var LoggerImpl
      */
-    private $captchaPage;
-
+    private $logger;
 
     public function __construct()
     {
-        $this->uamPage          = new UAMPageImpl();
-        $this->captchaPage      = new CaptchaPageImpl();
+        $this->uamPage = new UAMPageImpl();
+        $this->logger  = new LoggerImpl();
     }
 
-    public function exec($curlHandle, UAMOptions $uamOptions, bool $keepHandle = false, string $logPrefix = "--> ",
-                         array $httpHeaders = []): string
+    public function exec($curlHandle, UAMOptions $uamOptions, int $retry = 0, bool $keepHandle = false): string
     {
         if (!$keepHandle) {
-            curl_setopt($curlHandle, CURLOPT_VERBOSE, false);
-            curl_setopt($curlHandle, CURLINFO_HEADER_OUT, true);
+            curl_setopt($curlHandle, CURLOPT_COOKIELIST, "");
         }
 
-        $page   = curl_exec($curlHandle);
-        $info   = curl_getinfo($curlHandle);
+        $page = curl_exec($curlHandle);
+        $info = curl_getinfo($curlHandle);
 
-        if ($httpHeaders === []) {
-            $url  = curl_getinfo($curlHandle, CURLINFO_EFFECTIVE_URL);
-            $host = parse_url($url, PHP_URL_HOST);
+        if (UAMPage::isUAMPage($info['http_code'], $page)) {
+            $this->clearance = false;
+            $cloneCurlHandle = $keepHandle ? $curlHandle : $this->cloneCurlHandle($curlHandle);
+            $this->bypassIUAMPage($cloneCurlHandle, $page, $info, $retry, $uamOptions, $keepHandle);
 
-            // re-order http headers on original cURL handle.
-            $httpHeaders = $this->getHttpHeaders($this->getCurlHeadersAsMap($info['request_header']), $host);
-            curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $httpHeaders);
+            if (!$keepHandle) {
+                $this->copyCookies($cloneCurlHandle, $curlHandle);
+                $page = curl_exec($curlHandle);
+            }
         }
 
-        if (UAMPage::isUAMPageForCurl($page, $info)) {
-            $page = $this->requestForClearanceFromIUAM($curlHandle, $uamOptions, $keepHandle, $logPrefix, $httpHeaders);
-        }
-
-        if (CaptchaPage::isCaptchaPageForCurl($page, $info)) {
-            $page = $this->requestForClearanceFromCaptcha($logPrefix);
+        if ($info['http_code'] === 403 && strpos($page, "captcha")) {
+            $this->logger->error(sprintf("Captcha (retry: %s) -> not supported!", $retry));
+            throw new \ErrorException("Captcha page is not supported!");
         }
 
         return $page;
     }
 
-    /**
-     * Request for clearance using cURL
-     *
-     * Steps:
-     *  1. setup clone cURL handle with correct headers.
-     *  2. request UAM page
-     *  3. solve JS challenge as well as timing operation.
-     *  4. wait until 5 seconds is up.
-     *  5. request for clearance
-     *  6. attach clearance cookies to original cURL handle
-     *
-     * @param resource $curlHandle cURL handle
-     * @param UAMOptions $uamOptions UAM options
-     * @param bool $keepHandle Keep using same handle (INTERNAL USE)
-     * @param string $logPrefix Verbose log prefix (INTERNAL USE)
-     * @param array $httpHeaders Array of HTTP headers (INTERNAL USE)
-     * @return string Clearance page response
-     * @throws \ErrorException if captcha page is shown
-     */
-    private function requestForClearanceFromIUAM($curlHandle, UAMOptions $uamOptions, bool $keepHandle, string $logPrefix,
-                                                 array $httpHeaders): string
+    public function bypassIUAMPage($curlHandle, string $page, array $info, int $retry, UAMOptions $uamOptions, bool $keepHandle): string
     {
-        $verbose = $uamOptions->isVerbose();
+        if (!$keepHandle) {
+            $this->logger->enable($uamOptions->isVerbose());
 
-        // 1. setup clone cURL handle with correct headers
+            if (!$this->checkForCorrectHeaders($info['request_header'])) {
+                throw new \ErrorException("cURL handle does not contain correct headers (user-agent, accept, accept-language)");
+            }
+        }
 
-        $cloneCurlHandle = $keepHandle ? $curlHandle : curl_copy_handle($curlHandle);
-
-        $info       = curl_getinfo($curlHandle);
-        $scheme     = parse_url($info['url'], PHP_URL_SCHEME);
-
-        curl_setopt($cloneCurlHandle, CURLINFO_HEADER_OUT, false);
-        curl_setopt($cloneCurlHandle, CURLOPT_AUTOREFERER, true);
-        curl_setopt($cloneCurlHandle, CURLOPT_RETURNTRANSFER, true);
-
-        // 1.1 remove problematic ciphers which cause captcha page
+        $scheme = parse_url($info['url'], PHP_URL_SCHEME);
+        $host   = parse_url($info['url'], PHP_URL_HOST);
+        $time   = microtime(true) * 1000000;
 
         if ($scheme === "https") {
-            curl_setopt($cloneCurlHandle, CURLOPT_SSL_CIPHER_LIST, implode(":", self::DEFAULT_CIPHERS));
+            $this->logger->info(sprintf("UAM (retry: %s) -> applying HTTPS settings", $retry));
+            curl_setopt($curlHandle, CURLOPT_SSL_CIPHER_LIST, implode(":", self::DEFAULT_CIPHERS));
 
-            if (strpos($info['request_header'], "HTTP/2") !== false) {
-                curl_setopt($cloneCurlHandle, CURLOPT_HTTPHEADER, array_merge($httpHeaders,
-                    [
-                        "sec-fetch-mode: navigate",
-                        "sec-fetch-site: none",
-                        "sec-fetch-user: ?1"
-                    ]));
+            if (strpos($info['request_header'], 'HTTP/2') !== false) {
+                $headers   = array_filter(array_slice(preg_split("/\r\n|\n/", $info['request_header']), 1));
+                $headers[] = "sec-fetch-mode: navigate";
+                $headers[] = "sec-fetch-site: none";
+                $headers[] = "sec-fetch-user: ?1";
+
+                curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $headers);
             }
+
+            $page = curl_exec($curlHandle);
         }
 
-        curl_setopt($cloneCurlHandle, CURLOPT_COOKIELIST, "");
+        $this->logger->info(sprintf("UAM (retry: %s) -> waiting for %s seconds!", $retry, $uamOptions->getDelay()));
+        usleep(max(($uamOptions->getDelay() * 1000000) - ((microtime(true) * 1000000) - $time), 0));
+        $this->logger->info(sprintf("UAM (retry: %s) -> getting form params...", $retry));
 
-        if ($verbose) {
-            curl_setopt($cloneCurlHandle, CURLOPT_VERBOSE, $verbose);
+        $pageAttributes = new UAMPageAttributes($scheme, $host, $page);
+        $formParams     = $pageAttributes->getFormParams();
 
-            if (!$keepHandle) {
-                printf("%s [UAM] 1. Set up copy of existing cURL handle with correct settings\r\n", $logPrefix);
-            } else {
-                printf("%s [UAM] 1. Using existing cURL handle\r\n", $logPrefix);
-            }
-        }
+        $this->logger->info(sprintf("UAM (retry: %s) -> (s param: %s)", $retry, $formParams->getS()));
+        $this->logger->info(sprintf("UAM (retry: %s) -> (jschl_vc param: %s)", $retry, $formParams->getJschlVc()));
+        $this->logger->info(sprintf("UAM (retry: %s) -> (pass param: %s)", $retry, $formParams->getPass()));
+        $this->logger->info(sprintf("UAM (retry: %s) -> (jschl_answer param: %s)", $retry, $formParams->getJschlAnswer()));
 
-        // 2. request uam page
+        curl_setopt($curlHandle, CURLOPT_URL, $this->uamPage->getClearanceUrl($pageAttributes));
+        curl_setopt($curlHandle, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curlHandle, CURLOPT_CUSTOMREQUEST, "GET");
 
-        $uamPage    = curl_exec($cloneCurlHandle);
-        $uamInfo    = curl_getinfo($cloneCurlHandle);
+        $clearancePage    = $this->exec($curlHandle, $uamOptions, $retry + 1, true);
+        $clearanceCookies = curl_getinfo($curlHandle, CURLINFO_COOKIELIST);
 
-        if ($verbose) {
-            printf("%s [UAM] 2. Requested UAM page:\r\n", $logPrefix);
-            printf("%s [UAM] 2. UAM Page\t\t\t-> %s\r\n", $logPrefix, base64_encode($uamPage));
-            printf("%s [UAM] 2. UAM Info\t\t\t-> %s\r\n", $logPrefix, base64_encode(json_encode($uamInfo)));
-        }
-
-        // 3. solve JS challenge as well as timing operation
-
-        $time = microtime(true) * 1000000;
-
-        $scheme     = parse_url($uamInfo['url'], PHP_URL_SCHEME);
-        $host       = parse_url($uamInfo['url'], PHP_URL_HOST);
-
-        $pageAttributes     = new UAMPageAttributes($scheme, $host, $uamPage);
-        $pageFormParams     = UAMPageFormParams::getParamsFromPage($pageAttributes);
-
-        if ($verbose) {
-            printf("%s [UAM] 3. Solved JS challenge\r\n", $logPrefix);
-            printf("%s [UAM] 3. S\t\t\t\t\t-> %s\r\n", $logPrefix, $pageFormParams->getS());
-            printf("%s [UAM] 3. JSCHL_VC\t\t\t-> %s\r\n", $logPrefix, $pageFormParams->getJschlVc());
-            printf("%s [UAM] 3. PASS\t\t\t\t-> %s\r\n", $logPrefix, $pageFormParams->getPass());
-            printf("%s [UAM] 3. JSCHL_ANSWER\t\t-> %s\r\n", $logPrefix, $pageFormParams->getJschlAnswer());
-        }
-
-        // 4. wait until 5 seconds is up
-
-        usleep(($uamOptions->getDelay() * 1000000) - ((microtime(true) * 1000000) - $time));
-
-        if ($verbose) {
-            printf("%s [UAM] 4. five seconds are up!\r\n", $logPrefix);
-        }
-
-        // 5. request for clearance
-
-        curl_setopt($cloneCurlHandle, CURLOPT_URL, $this->uamPage->getClearanceUrl($pageAttributes, $pageFormParams));
-        curl_setopt($cloneCurlHandle, CURLOPT_FOLLOWLOCATION, false);
-        curl_setopt($cloneCurlHandle, CURLOPT_CUSTOMREQUEST, "GET");
-
-        $clearancePage = $this->exec($cloneCurlHandle, $uamOptions, true, $logPrefix . " --> ", $httpHeaders);
-        $clearanceInfo = curl_getinfo($cloneCurlHandle);
-
-        if ($verbose) {
-            printf("%s [UAM] 5. Requested clearance page\r\n", $logPrefix);
-            printf("%s [UAM] 5. Clearance page\t-> %s\r\n", $logPrefix, base64_encode($clearancePage));
-            printf("%s [UAM] 5. Clearance info\t-> %s\r\n", $logPrefix, base64_encode(json_encode($clearanceInfo)));
-        }
-
-        if (!$keepHandle) {
-
-            // 6. attach ordered http headers to original curl handle
-
-            curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $httpHeaders);
-
-            // 6. attach clearance cookies to original curl handle
-
-            $clearanceCookies = curl_getinfo($cloneCurlHandle, CURLINFO_COOKIELIST);
-
+        if (!$this->clearance) {
             foreach ($clearanceCookies as $clearanceCookie) {
-                curl_setopt($curlHandle, CURLOPT_COOKIELIST, $clearanceCookie);
-
-                if ($verbose) {
-                    printf("%s [UAM] 6. Set clearance cookie on original cURL handle: %s\r\n", $logPrefix, $clearanceCookie);
+                if (strpos($clearanceCookie, "cf_clearance") !== false) {
+                    $this->logger->info(sprintf("UAM (retry: %s) -> clearance cookie found!", $retry));
+                    $this->clearance = true;
+                    break;
                 }
             }
 
-            curl_close($cloneCurlHandle);
+            $this->logger->info(print_r($clearanceCookies, true));
 
-            if ($verbose) {
-                printf("%s [UAM] 6. UAM page bypassed! :)\r\n", $logPrefix);
+            if (!$this->clearance) {
+                $this->logger->error(sprintf("UAM (retry: %s) -> clearance cookie missing!", $retry));
+                throw new \ErrorException("CF clearance could not be found!");
             }
         }
 
-        return $keepHandle ? $clearancePage : $this->exec($curlHandle, $uamOptions, $keepHandle, $logPrefix . " --> ", $httpHeaders);
+        return $clearancePage;
     }
 
     /**
-     * Request for clearance from captcha page.
-     * - Not implemented yet.
+     * Clones cURL handle.
      *
-     * @param string $logPrefix Log prefix.
-     * @throws \ErrorException
+     * @param mixed $curlHandle cURL handle
+     * @return mixed new cURL handle
      */
-    private function requestForClearanceFromCaptcha(string $logPrefix)
+    private function cloneCurlHandle($curlHandle)
     {
-        $this->captchaPage->getClearanceUrl($logPrefix);
+        $cloneCurlHandle = curl_copy_handle($curlHandle);
+        curl_setopt($cloneCurlHandle, CURLINFO_HEADER_OUT, true);
+        $this->copyCookies($curlHandle, $cloneCurlHandle);
+
+        return $cloneCurlHandle;
     }
 
     /**
-     * Get HTTP headers to send with cURL
+     * Checks if cURL handle has correct headers to bypass CloudFlare.
      *
-     * @param array $requestHeaderMap cURL request header map
-     * @param string $host cURL request host
-     * @return array Request headers to send with cURL
+     * @param string $headers Page request headers.
+     * @return bool TRUE if cURL handle contains correct headers
      */
-    private function getHttpHeaders(array $requestHeaderMap, string $host)
+    private function checkForCorrectHeaders(string $headers): bool
     {
-        $requestHeaders = [];
-        $requestHeaders[] = sprintf("Host: %s", $host);
-        $requestHeaders[] = "Connection: keep-alive";
-        $requestHeaders[] = "Upgrade-Insecure-Requests: 1";
-        $requestHeaders[] = sprintf("User-Agent: %s", $requestHeaderMap['user-agent']);
-        $requestHeaders[] = sprintf("Accept: %s", $requestHeaderMap["accept"] ?? self::DEFAULT_HEADERS['accept']);
-        $requestHeaders[] = sprintf("Accept-Language: %s", $requestHeaderMap["accept-language"] ?? self::DEFAULT_HEADERS['accept-language']);
-
-        // remove general request headers from map
-
-        unset(
-            $requestHeaderMap["host"],
-            $requestHeaderMap["connection"],
-            $requestHeaderMap["upgrade-insecure-requests"],
-            $requestHeaderMap["user-agent"],
-            $requestHeaderMap["accept"],
-            $requestHeaderMap["accept-language"],
-            $requestHeaderMap["accept-encoding"]
-        );
-
-        foreach ($requestHeaderMap as $header => $value) {
-            $requestHeaders[] = sprintf("%s: %s", $header, $value);
-        }
-
-        return $requestHeaders;
-    }
-
-    /**
-     * Parses cURL request headers into a map.
-     *
-     * @param string $requestHeaders cURL request headers.
-     * @return array cURL request headers as associative array
-     */
-    private function getCurlHeadersAsMap(string $requestHeaders)
-    {
-        $requestHeaders     = explode(PHP_EOL, $requestHeaders);
-        $requestHeaderMap   = [];
-
-        foreach ($requestHeaders as $requestHeader) {
-            if (strpos($requestHeader, ":") !== false) {
-                $colonPos   = strpos($requestHeader, ':');
-
-                $name       = substr($requestHeader, 0, $colonPos);
-                $value      = substr($requestHeader, $colonPos + 1);
-
-                $requestHeaderMap[strtolower($name)] = trim($value);
+        foreach (self::DEFAULT_HEADERS as $header) {
+            if (stripos($headers, $header.':') === false) {
+                return false;
             }
         }
 
-        return $requestHeaderMap;
+        return true;
+    }
+
+    /**
+     * Copy cookies from one cURL handle to another.
+     *
+     * @param mixed $curlHandleFrom cURL handle to copy cookies from.
+     * @param mixed $curlHandleTo cURL handle to copy cookies to.
+     */
+    private function copyCookies($curlHandleFrom, $curlHandleTo)
+    {
+        $cookies = curl_getinfo($curlHandleFrom, CURLINFO_COOKIELIST);
+
+        foreach ($cookies as $cookie) {
+            curl_setopt($curlHandleTo, CURLOPT_COOKIELIST, $cookie);
+        }
     }
 }

@@ -1,3 +1,9 @@
+v3.3.0
+
+- Added check into CFCurl to ensure correct headers are provided for bypass.
+- Removed CaptchaPage classes and moved exception handling for captcha into CFCurl
+- CFCurl flow improvements
+
 v3.2.0-3.2.1
 
 - Added logic to order request headers when bypassing using cURL

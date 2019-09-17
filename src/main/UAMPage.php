@@ -3,7 +3,6 @@
 namespace CloudflareBypass;
 
 use CloudflareBypass\Model\UAM\UAMPageAttributes;
-use CloudflareBypass\Model\UAM\UAMPageFormParams;
 
 /**
  * Interface UAMPage
@@ -14,20 +13,26 @@ use CloudflareBypass\Model\UAM\UAMPageFormParams;
  */
 abstract class UAMPage
 {
-    public static function isUAMPageForCurl(string $page, array $info)
-    {
-        return
-            $info['http_code'] === 503
-            && strpos($page, "jschl_vc") !== false
-            && strpos($page, "jschl_answer") !== false;
+    /**
+     * Checks if page is a UAM page.
+     *
+     * @param int $httpCode Alleged page http code
+     * @param string $page Alleged page
+     * @return bool TRUE if page is a UAM page.
+     */
+    public static function isUAMPage(int $httpCode, string $page): bool {
+        return $httpCode === 503
+            && strpos($page, '"s"') !== false
+            && strpos($page, '"pass"') !== false
+            && strpos($page, '"jschl_vc"') !== false
+            && strpos($page, '"jschl_answer"') !== false;
     }
 
     /**
      * Gets clearance url.
      *
      * @param UAMPageAttributes $pageAttributes UAM page attributes
-     * @param UAMPageFormParams $formParams UAM page form params
      * @return string Clearance url
      */
-    public abstract function getClearanceUrl(UAMPageAttributes $pageAttributes, UAMPageFormParams $formParams): string;
+    public abstract function getClearanceUrl(UAMPageAttributes $pageAttributes): string;
 }

@@ -3,8 +3,8 @@
 namespace CloudflareBypass\Model;
 
 /**
- * Class Options
- *      - Extra options for bypassing.
+ * Class UAMOptions
+ *      - Extra options for bypassing UAM page.
  *
  * @package CloudflareBypass\Model
  * @author Kyran Rana
@@ -17,6 +17,13 @@ class UAMOptions
      * @var bool $verbose TRUE if verbose mode is enabled
      */
     private $verbose = false;
+
+    /**
+     * Number of retries.
+     *
+     * @var int $retry Retries to bypass Cloudflare.
+     */
+    private $retries = 3;
 
     /**
      * Delay to clearance.
@@ -55,6 +62,16 @@ class UAMOptions
     public function getDelay(): int
     {
         return $this->delay;
+    }
+
+    /**
+     * Gets number of retries allowed.
+     *
+     * @return int Number of retries.
+     */
+    public function getRetries(): int
+    {
+        return $this->retries;
     }
 
     /**

@@ -11,6 +11,7 @@ use SimpleJavaScriptCompilation\Model\DataType\CustomString;
 /**
  * Class UAMPageFormParams
  *      - UAM page form parameters.
+ *      - Part of UAMPageAttributes model.
  *
  * @package CloudflareBypass\Model\UAM
  * @author Kyran Rana
@@ -39,29 +40,24 @@ class UAMPageFormParams
      * Gets answer to JavaScript challenge.
      *
      * @param UAMPageAttributes $pageAttributes UAM page attributes.
-     * @return float Answer to JavaScript challenge
+     * @return string Answer to JavaScript challenge
      * @throws \ErrorException if JS evaluation fails
      */
-    public static function getJschlAnswerFromPage(UAMPageAttributes $pageAttributes): float
+    public static function getJschlAnswerFromPage(UAMPageAttributes $pageAttributes): string
     {
         $codeSnippets = UAMPageChallengeCode::getSnippetsFromPage($pageAttributes->getPage());
 
         $ctx = new Context();
-
         $ctx->setCtxFunc('e', 'SimpleJavaScriptCompilation\Model\FunctionMap\GlobalFunctionMap::atob');
         $ctx->setCtxFunc('g', 'SimpleJavaScriptCompilation\Model\FunctionMap\GlobalFunctionMap::stringFromCharCode');
-
         $ctx->setCtxVar('t', new CustomString(new DataType(['value' => '"' . $pageAttributes->getHost() . '"'])));
 
-        $secondaryChallengeCode = $codeSnippets->getSecondaryChallengeCode();
-
-        if ($secondaryChallengeCode !== "") {
-            $ctx->setCtxVar('k', ExpressionInterpreterImpl::instance()->interpretExpression($secondaryChallengeCode, new Context()));
+        if ($codeSnippets->getSecondaryChallengeCode() !== "") {
+            $ctx->setCtxVar('k', ExpressionInterpreterImpl::instance()->interpretExpression($codeSnippets->getSecondaryChallengeCode(), new Context()));
         }
 
         $ctx = DeclarationInterpreterImpl::instance()->interpretDeclarations($codeSnippets->getChallengeCode(), $ctx);
-
-        return round($ctx->getCtxSum()->getDataType()->getValue(), 10);
+        return substr($ctx->getCtxVar("answer")->getDataType()->getValue(), 1, -1);
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -90,11 +86,11 @@ class UAMPageFormParams
     /**
      * JSCHL answer param
      *
-     * @var float $jschlAnswer
+     * @var string $jschlAnswer
      */
     private $jschlAnswer;
 
-    public function __construct(string $s, string $jschlVc, string $pass, float $jschlAnswer)
+    public function __construct(string $s, string $jschlVc, string $pass, string $jschlAnswer)
     {
         $this->s                = $s;
         $this->jschlVc          = $jschlVc;
@@ -135,9 +131,9 @@ class UAMPageFormParams
     /**
      * Gets JSCHL ANSWER param.
      *
-     * @return float
+     * @return string
      */
-    public function getJschlAnswer(): float
+    public function getJschlAnswer(): string
     {
         return $this->jschlAnswer;
     }
@@ -150,10 +146,10 @@ class UAMPageFormParams
     public function getQueryString(): string
     {
         return http_build_query([
-            's'                 => $this->getS(),
-            'jschl_vc'          => $this->getJschlVc(),
-            'pass'              => $this->getPass(),
-            'jschl_answer'      => $this->getJschlAnswer()
+            's'             => $this->getS(),
+            'jschl_vc'      => $this->getJschlVc(),
+            'pass'          => $this->getPass(),
+            'jschl_answer'  => $this->getJschlAnswer()
         ]);
     }
 }
