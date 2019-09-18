@@ -115,7 +115,7 @@ class CFCurlImpl implements CFCurl
             $this->logger->enable($uamOptions->isVerbose());
 
             if (!$this->checkForCorrectHeaders($info['request_header'])) {
-                throw new \ErrorException("cURL handle does not contain correct headers (user-agent, accept, accept-language)");
+                throw new \ErrorException("cURL handle does not contain correct headers (user-agent, accept, accept-language, upgrade-insecure-requests)");
             }
         }
 
