@@ -22,7 +22,7 @@ abstract class UAMPage
      */
     public static function isUAMPage(int $httpCode, string $page): bool {
         return $httpCode === 503
-            && strpos($page, '"s"') !== false
+            && strpos($page, '"r"') !== false
             && strpos($page, '"pass"') !== false
             && strpos($page, '"jschl_vc"') !== false
             && strpos($page, '"jschl_answer"') !== false;
