@@ -21,12 +21,13 @@ class UAMPageChallengeCode
     public static function getSnippetsFromPage(string $page): UAMPageChallengeCode
     {
         $challengeCode          = self::getChallengeCodeFromPage($page);
+        $secondaryChallengeCode = self::getSecondaryChallengeCodeFromPage($page, $challengeCode);
 
         $challengeCode = preg_replace("/k = '([^']+)';/", "", $challengeCode);
         $challengeCode = str_replace("\n", "", $challengeCode);
         $challengeCode = preg_replace("/; +;/", ";", $challengeCode);
 
-        return new UAMPageChallengeCode($challengeCode);
+        return new UAMPageChallengeCode($challengeCode, $secondaryChallengeCode);
     }
 
     /**
@@ -51,8 +52,24 @@ class UAMPageChallengeCode
 
         $code = preg_replace("/(\w+)={\"([^\"]+)\":([^}]+)};/", "answer=$3;", $code);
         $code = str_replace($matches[1] . '.' . $matches[2], "answer", $code);
+        $code = trim(str_replace('Function("return escape")()', "escape", $code));
 
         return $code;
+    }
+
+    /**
+     * Gets secondary challenge code from UAM page (k).
+     *
+     * @param string $page UAM page
+     * @param string $code UAM page challenge code
+     * @return string Secondary challenge code
+     */
+    public static function getSecondaryChallengeCodeFromPage(string $page, string $code): string
+    {
+        preg_match('/k = \'([^\']+)\';/', $code, $kMatches);
+        preg_match('/id="' . ($kMatches[1] ?? "") . '">([^<]+)</', $page, $kElemMatches);
+
+        return $kElemMatches[1] ?? "";
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -64,9 +81,17 @@ class UAMPageChallengeCode
      */
     private $challengeCode;
 
-    public function __construct(string $challengeCode)
+    /**
+     * Secondary challenge code (k)
+     *
+     * @var string $secondaryChallengeCode Secondary c hallenge code
+     */
+    private $secondaryChallengeCode;
+
+    public function __construct(string $challengeCode, string $secondaryChallengeCode)
     {
-        $this->challengeCode = $challengeCode;
+        $this->challengeCode          = $challengeCode;
+        $this->secondaryChallengeCode = $secondaryChallengeCode;
     }
 
     /**
@@ -77,5 +102,15 @@ class UAMPageChallengeCode
     public function getChallengeCode(): string
     {
         return $this->challengeCode;
+    }
+
+    /**
+     * Gets secondary challenge code (k).
+     *
+     * @return string Secondary challenge code.
+     */
+    public function getSecondaryChallengeCode(): string
+    {
+        return $this->secondaryChallengeCode;
     }
 }
