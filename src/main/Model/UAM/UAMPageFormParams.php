@@ -39,7 +39,7 @@ class UAMPageFormParams
             $jschlVcMatches[1],
             $passMatches[1],
             self::getJschlAnswerFromPage($pageAttributes),
-            $urlMatches[1]
+            htmlspecialchars_decode($urlMatches[1])
         );
     }
 
