@@ -18,6 +18,9 @@
     "ext-json": "*",
     "ext-bcmath": "*"
   },
+  "scripts": {
+    "phpunit": "phpunit"
+  },
   "require-dev": {
     "phpunit/phpunit": "^6.5.5"
   },
