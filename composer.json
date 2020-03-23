@@ -3,7 +3,6 @@
   "description": "A library for helping bypass the cloudflare UAM page.",
   "type": "library",
   "license": "MIT",
-  "version": "3.3.0",
   "authors": [
     {
       "name": "Kyran Rana",
