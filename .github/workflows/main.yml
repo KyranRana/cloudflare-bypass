@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+    runs-on: ${{ matrix.operating-system }}
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extension-csv: bcmath, mbstring
+          coverage: xdebug
+
+      - name: Check PHP Version
+        run: php -v
+
+      - name: Check Composer Version
+        run: composer -V
+
+      - name: Install Dependencies
+        run: composer install --prefer-dist
+
+      - name: Tests
+        run: cd src/test && ../../vendor/phpunit/phpunit/phpunit .
