@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['7.2', '7.3', '7.4']
     runs-on: ${{ matrix.operating-system }}
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -34,4 +34,16 @@ jobs:
         run: composer install --prefer-dist
 
       - name: Tests
-        run: cd src/test && ../../vendor/phpunit/phpunit/phpunit .
+        run: composer phpunit
+
+      - name: Publish Tests artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Tests
+          path: ./build/logs/junit.xml
+
+      - name: Publish Coverage artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Coverage
+          path: ./build/coverage/report
