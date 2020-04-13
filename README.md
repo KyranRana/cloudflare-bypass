@@ -1,3 +1,8 @@
+# Important Note
+
+Hey there just an update from myself (@KyranRana), I am aware this project is bugged in some instances and doesn't work at all in others. This is why I am developing an entirely new version of it (v4.0.0) which is hopefully going to fix most issues and reduce the rate at which issues are created. This version will be out for early testing soon. This project is quite a lot of work to maintain so if you want to support me please be my patreon: https://www.patreon.com/kyranrana
+
+
 # Cloudflare Bypass
 
 [![CI](https://github.com/KyranRana/cloudflare-bypass/workflows/CI/badge.svg)](https://github.com/jaymoulin/cloudflare-bypass/actions?query=workflow%3ACI)
