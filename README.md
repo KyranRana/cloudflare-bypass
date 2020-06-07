@@ -1,6 +1,6 @@
-# Important Note
+# Deprecation Note
 
-Hey there just an update from myself (@KyranRana), I am aware this project is bugged in some instances and doesn't work at all in others. This is why I am developing an entirely new version of it (v4.0.0) which is hopefully going to fix most issues and reduce the rate at which issues are created. This version will be out for early testing soon. This project is quite a lot of work to maintain so if you want to support me please donate: 1Fg3kSZgAo97yBT6dCjkdp1cGteevEGhLZ
+Unfortunately these new changes which Cloudflare are implementing will not be feasible to implement nor maintain in PHP. So it saddens me to say this project is going to be archived. Well played Cloudflare.
 
 
 # Cloudflare Bypass
